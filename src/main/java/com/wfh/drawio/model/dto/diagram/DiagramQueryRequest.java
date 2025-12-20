@@ -10,8 +10,7 @@ import java.util.List;
 /**
  * 查询图表请求
  *
- * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
- * @from <a href="https://www.code-nav.cn">编程导航学习圈</a>
+ * @author fenghuanwang
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -42,10 +41,6 @@ public class DiagramQueryRequest extends PageRequest implements Serializable {
      */
     private String content;
 
-    /**
-     * 标签列表
-     */
-    private List<String> tags;
 
     /**
      * 创建用户 id

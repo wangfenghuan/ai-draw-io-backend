@@ -73,11 +73,7 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
         Long id = diagramQueryRequest.getId();
         Long notId = diagramQueryRequest.getNotId();
         String name = diagramQueryRequest.getTitle();
-        String content = diagramQueryRequest.getContent();
         String searchText = diagramQueryRequest.getSearchText();
-        String sortField = diagramQueryRequest.getSortField();
-        String sortOrder = diagramQueryRequest.getSortOrder();
-        List<String> tagList = diagramQueryRequest.getTags();
         Long userId = diagramQueryRequest.getUserId();
         // todo 补充需要的查询条件
         // 从多字段中搜索
