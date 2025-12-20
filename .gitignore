@@ -1,0 +1,50 @@
+# --- Build Tools ---
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
+
+
+src/main/resources/application-local.yml
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# --- IDE Settings (不应该提交到仓库) ---
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# --- Spring Boot & Java ---
+# 编译后的 class 文件
+*.class
+
+# 日志文件
+*.log
+logs/
+
+# --- System ---
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# --- Security (非常重要) ---
+# 忽略包含敏感信息的配置文件（如果包含密码/密钥）
+# application-secret.properties
+# .env
