@@ -1,0 +1,9 @@
+spring:
+  profiles:
+    active: local
+  application:
+    name: drawio-backend
+server:
+  port: 8080
+  servlet:
+    context-path: /api
