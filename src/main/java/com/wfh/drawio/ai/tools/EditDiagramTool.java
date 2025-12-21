@@ -78,7 +78,7 @@ public class EditDiagramTool {
 
             // 3. 操作成功后，保存新的 XML 到数据库
             diagram.setDiagramCode(result.resultXml);
-            diagramService.save(diagram);
+            diagramService.updateById(diagram);
             return ToolResult.success(
                     result.resultXml,
                     "Edit operations applied successfully:\n" +

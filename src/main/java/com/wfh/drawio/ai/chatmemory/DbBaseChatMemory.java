@@ -61,17 +61,17 @@ public class DbBaseChatMemory implements ChatMemory {
     /**
      * 保存消息到当前会话id
      *
-     * @param conversationId
+     * @param diagramId
      * @param messages
      */
-    public void saveConversation(String conversationId, List<Message> messages) {
-        Diagram diagram = diagramService.getOne(new QueryWrapper<>(Diagram.class).eq("id", conversationId));
+    public void saveConversation(String diagramId, List<Message> messages) {
+        Diagram diagram = diagramService.getOne(new QueryWrapper<>(Diagram.class).eq("id", Long.valueOf(diagramId)));
         Long userId = diagram.getUserId();
         for (Message message : messages) {
             // 获取当前消息的类型
             String type = message.getMessageType().getValue();
             Conversion conversion = new Conversion();
-            conversion.setDiagramId(Long.valueOf(conversationId));
+            conversion.setDiagramId(Long.valueOf(diagramId));
             String text = message.getText();
             conversion.setUserId(userId);
             if (type.equals(MessageType.ASSISTANT.getValue())){

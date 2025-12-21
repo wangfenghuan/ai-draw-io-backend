@@ -50,7 +50,6 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
         // 创建数据时，参数不能为空
         if (add) {
             ThrowUtils.throwIf(StringUtils.isBlank(name), ErrorCode.PARAMS_ERROR);
-            ThrowUtils.throwIf(StringUtils.isBlank(diagramCode), ErrorCode.PARAMS_ERROR);
             ThrowUtils.throwIf(ObjectUtils.isEmpty(userId), ErrorCode.PARAMS_ERROR);
         }
         // 修改数据时，有参数则校验

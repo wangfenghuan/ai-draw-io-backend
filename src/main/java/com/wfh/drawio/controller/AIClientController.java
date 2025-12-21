@@ -42,7 +42,7 @@ public class AIClientController {
     @PostMapping("/gen")
     public String doChat(String message, String diagramId){
         return ScopedValue.where(DiagramContextUtil.CONVERSATION_ID, String.valueOf(diagramId))
-                .call(() -> drawClient.doChat(message));
+                .call(() -> drawClient.doChat(message, diagramId));
     }
 
 }

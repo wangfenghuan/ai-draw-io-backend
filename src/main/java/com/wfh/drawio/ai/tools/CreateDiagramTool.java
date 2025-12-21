@@ -1,9 +1,11 @@
 package com.wfh.drawio.ai.tools;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.wfh.drawio.ai.utils.DiagramContextUtil;
 import com.wfh.drawio.model.entity.Diagram;
 import com.wfh.drawio.service.DiagramService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Component;
  * @description: 创建图表工具
  */
 @Component
+@Slf4j
 public class CreateDiagramTool {
 
     public CreateDiagramTool() {}
@@ -91,7 +94,8 @@ public class CreateDiagramTool {
             Diagram diagram = diagramService.getById(diagramId);
             diagram.setDiagramCode(xml);
             // 然后在保存
-            diagramService.save(diagram);
+            diagramService.updateById(diagram);
+            log.info("创建的图表： {}", xml);
             return ToolResult.success(xml,
                     "Diagram created successfully. " + extractMxCellCount(xml) + " cells created.");
 

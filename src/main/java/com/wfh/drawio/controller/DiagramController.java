@@ -55,10 +55,10 @@ public class DiagramController {
         ThrowUtils.throwIf(diagramAddRequest == null, ErrorCode.PARAMS_ERROR);
         Diagram diagram = new Diagram();
         BeanUtils.copyProperties(diagramAddRequest, diagram);
-        // 数据校验
-        diagramService.validDiagram(diagram, true);
         User loginUser = userService.getLoginUser(request);
         diagram.setUserId(loginUser.getId());
+        // 数据校验
+        diagramService.validDiagram(diagram, true);
         // 写入数据库
         boolean result = diagramService.save(diagram);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);

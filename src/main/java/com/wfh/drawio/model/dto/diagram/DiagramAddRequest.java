@@ -15,7 +15,7 @@ public class DiagramAddRequest implements Serializable {
     /**
      * 标题
      */
-    private String title;
+    private String name;
 
     /**
      * 内容

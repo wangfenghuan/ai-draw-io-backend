@@ -70,7 +70,7 @@ public class AppendDiagramTool {
 
             // 5. 【关键】把拼接好的结果保存到数据库中去
             diagram.setDiagramCode(appendedXml);
-            diagramService.save(diagram);
+            diagramService.updateById(diagram);
 
             return ToolResult.success(
                     appendedXml,
