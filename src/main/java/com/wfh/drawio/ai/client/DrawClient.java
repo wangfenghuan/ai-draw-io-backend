@@ -12,6 +12,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 /**
  * @Title: DrawClient
@@ -57,4 +58,20 @@ public class DrawClient {
         return text;
     }
 
+
+    /**
+     * 调用工具流式对话
+     * @param message
+     * @param diagramId
+     * @return
+     */
+    public Flux<String> doChatStream(String message, String diagramId){
+
+        return chatClient.prompt()
+                .user(message)
+                .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, diagramId))
+                .toolCallbacks(allTools)
+                .stream().content();
+
+    }
 }
