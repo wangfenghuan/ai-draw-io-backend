@@ -1,5 +1,9 @@
 package com.wfh.drawio.ai.tools;
 
+import com.wfh.drawio.ai.utils.DiagramContextUtil;
+import com.wfh.drawio.model.entity.Diagram;
+import com.wfh.drawio.service.DiagramService;
+import jakarta.annotation.Resource;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -15,6 +19,9 @@ import org.springframework.stereotype.Component;
 public class CreateDiagramTool {
 
     public CreateDiagramTool() {}
+
+    @Resource
+    private DiagramService diagramService;
 
     @Tool(name = "display_diagram", description = """
         Create a new diagram on draw.io. Pass ONLY the mxCell elements - wrapper tags and root cells are added automatically.
@@ -44,6 +51,14 @@ public class CreateDiagramTool {
             DiagramSchemas.CreateDiagramRequest request
     ) {
         try {
+
+            // 判断是否绑定了作用域
+            if (!DiagramContextUtil.CONVERSATION_ID.isBound()){
+                return ToolResult.error("System Error: ScopedValue noe bound");
+            }
+            // 当前的图表ID
+            String diagramId = DiagramContextUtil.CONVERSATION_ID.get();
+
             String xml = request.getXml();
 
             // 1. 基础防错校验
@@ -72,7 +87,11 @@ public class CreateDiagramTool {
             if (!xml.contains("<mxCell")) {
                 return ToolResult.error("Invalid XML content: must contain <mxCell> elements");
             }
-
+            // 当前图表生成完毕，保存到对应的数据库表中(这里先把数据库中的图表查出来)
+            Diagram diagram = diagramService.getById(diagramId);
+            diagram.setDiagramCode(xml);
+            // 然后在保存
+            diagramService.save(diagram);
             return ToolResult.success(xml,
                     "Diagram created successfully. " + extractMxCellCount(xml) + " cells created.");
 

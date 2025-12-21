@@ -1,5 +1,9 @@
 package com.wfh.drawio.ai.tools;
 
+import com.wfh.drawio.ai.utils.DiagramContextUtil;
+import com.wfh.drawio.model.entity.Diagram;
+import com.wfh.drawio.service.DiagramService;
+import jakarta.annotation.Resource;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -18,6 +22,9 @@ public class EditDiagramTool {
 
     public EditDiagramTool() {}
 
+    @Resource
+    private DiagramService diagramService;
+
     @Tool(name = "edit_diagram", description = """
         Edit the current diagram by ID-based operations (update/add/delete cells).
 
@@ -32,15 +39,17 @@ public class EditDiagramTool {
         Example: id=\\"5\\" value=\\"Label\\"
         """)
     public ToolResult<DiagramSchemas.EditDiagramRequest, String> execute(
-            // 1. 去掉了 currentXml 参数，AI 不需要传这个
             @ToolParam(description = "The list of operations to perform on the diagram")
             DiagramSchemas.EditDiagramRequest request
     ) {
         try {
-            // 2. 在后端内部获取 currentXml
-            // 实际开发中，这里应该从 Session、Database 或 ThreadLocal 中获取当前用户的图表
-            // String currentXml = diagramService.getCurrentXml(userId);
-            String currentXml = getMockCurrentXml(); // 临时模拟，防止编译报错
+            // 判断是否绑定了作用域
+            if (!DiagramContextUtil.CONVERSATION_ID.isBound()){
+                return ToolResult.error("System Error: ScopedValue noe bound");
+            }
+            String diagramId = DiagramContextUtil.CONVERSATION_ID.get();
+            Diagram diagram = diagramService.getById(diagramId);
+            String currentXml = diagram.getDiagramCode();
 
             List<DiagramSchemas.EditOperation> operations = request.getOperations();
 
@@ -53,9 +62,9 @@ public class EditDiagramTool {
                 if (op.getType() == null || op.getCellId() == null) {
                     return ToolResult.error("Each operation must have type and cell_id");
                 }
-
-                if ((op.getType().equals("update") || op.getType().equals("add")) &&
-                        (op.getNewXml() == null || op.getNewXml().trim().isEmpty())) {
+                boolean res = ("update".equals(op.getType()) || "add".equals(op.getType())) &&
+                        (op.getNewXml() == null || op.getNewXml().trim().isEmpty());
+                if (res) {
                     return ToolResult.error("new_xml is required for " + op.getType() + " operations");
                 }
             }
@@ -67,9 +76,9 @@ public class EditDiagramTool {
                 return ToolResult.error("Failed to apply operations: " + String.join(", ", result.errors));
             }
 
-            // 3. 【关键】操作成功后，记得保存新的 XML 状态
-            // diagramService.saveXml(userId, result.resultXml);
-
+            // 3. 操作成功后，保存新的 XML 到数据库
+            diagram.setDiagramCode(result.resultXml);
+            diagramService.save(diagram);
             return ToolResult.success(
                     result.resultXml,
                     "Edit operations applied successfully:\n" +
@@ -82,9 +91,5 @@ public class EditDiagramTool {
         }
     }
 
-    // 模拟获取数据的方法
-    private String getMockCurrentXml() {
-        return "<mxGraphModel><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/></root></mxGraphModel>";
-    }
 
 }

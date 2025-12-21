@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * 查询图表请求
@@ -21,10 +20,6 @@ public class DiagramQueryRequest extends PageRequest implements Serializable {
      */
     private Long id;
 
-    /**
-     * id
-     */
-    private Long notId;
 
     /**
      * 搜索词
@@ -39,7 +34,7 @@ public class DiagramQueryRequest extends PageRequest implements Serializable {
     /**
      * 内容
      */
-    private String content;
+    private String diagramCode;
 
 
     /**

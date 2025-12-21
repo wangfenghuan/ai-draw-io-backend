@@ -16,7 +16,7 @@ public class Diagram {
     /**
      * 图表主键id
      */
-    @TableId
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**

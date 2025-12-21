@@ -3,7 +3,6 @@ package com.wfh.drawio.model.dto.diagram;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * 更新图表请求
@@ -26,7 +25,7 @@ public class DiagramUpdateRequest implements Serializable {
     /**
      * 内容
      */
-    private String content;
+    private String diagramCode;
 
 
     private static final long serialVersionUID = 1L;

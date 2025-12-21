@@ -9,6 +9,7 @@ import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.model.dto.diagram.DiagramQueryRequest;
 import com.wfh.drawio.model.entity.Diagram;
 import com.wfh.drawio.mapper.DiagramMapper;
+import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.DiagramVO;
 import com.wfh.drawio.service.DiagramService;
 import com.wfh.drawio.service.UserService;
@@ -43,16 +44,17 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
     @Override
     public void validDiagram(Diagram diagram, boolean add) {
         ThrowUtils.throwIf(diagram == null, ErrorCode.PARAMS_ERROR);
-        // todo 从对象中取值
         String name = diagram.getName();
+        String diagramCode = diagram.getDiagramCode();
+        Long userId = diagram.getUserId();
         // 创建数据时，参数不能为空
         if (add) {
-            // todo 补充校验规则
             ThrowUtils.throwIf(StringUtils.isBlank(name), ErrorCode.PARAMS_ERROR);
+            ThrowUtils.throwIf(StringUtils.isBlank(diagramCode), ErrorCode.PARAMS_ERROR);
+            ThrowUtils.throwIf(ObjectUtils.isEmpty(userId), ErrorCode.PARAMS_ERROR);
         }
         // 修改数据时，有参数则校验
-        // todo 补充校验规则
-        if (StringUtils.isNotBlank(name)) {
+        if (StringUtils.isNotBlank(name) || StringUtils.isNotBlank(diagramCode)) {
             ThrowUtils.throwIf(name.length() > 80, ErrorCode.PARAMS_ERROR, "标题过长");
         }
     }
@@ -69,13 +71,10 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
         if (diagramQueryRequest == null) {
             return queryWrapper;
         }
-        // todo 从对象中取值
         Long id = diagramQueryRequest.getId();
-        Long notId = diagramQueryRequest.getNotId();
         String name = diagramQueryRequest.getTitle();
         String searchText = diagramQueryRequest.getSearchText();
         Long userId = diagramQueryRequest.getUserId();
-        // todo 补充需要的查询条件
         // 从多字段中搜索
         if (StringUtils.isNotBlank(searchText)) {
             // 需要拼接查询条件
@@ -84,7 +83,6 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
         // 模糊查询
         queryWrapper.like(StringUtils.isNotBlank(name), "name", name);
         // 精确查询
-        queryWrapper.ne(ObjectUtils.isNotEmpty(notId), "id", notId);
         queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         return queryWrapper;
@@ -100,9 +98,7 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
     @Override
     public DiagramVO getDiagramVO(Diagram diagram, HttpServletRequest request) {
         // 对象转封装类
-        DiagramVO diagramVO = DiagramVO.objToVo(diagram);
-        
-        return diagramVO;
+        return DiagramVO.objToVo(diagram);
     }
 
     /**

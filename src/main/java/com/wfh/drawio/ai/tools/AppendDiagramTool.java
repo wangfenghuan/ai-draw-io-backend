@@ -1,5 +1,10 @@
 package com.wfh.drawio.ai.tools;
 
+import com.wfh.drawio.ai.utils.DiagramContextUtil;
+import com.wfh.drawio.model.entity.Diagram;
+import com.wfh.drawio.service.ConversionService;
+import com.wfh.drawio.service.DiagramService;
+import jakarta.annotation.Resource;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -13,6 +18,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class AppendDiagramTool {
+
+
+    @Resource
+    private DiagramService diagramService;
 
     public AppendDiagramTool() {}
 
@@ -28,12 +37,18 @@ public class AppendDiagramTool {
         4. If still truncated, call append_diagram again with the next fragment
         """)
     public ToolResult<DiagramSchemas.AppendDiagramRequest, String> execute(
-            // 3. 去掉 currentXml 参数，AI 不需要也不应该传这个
             @ToolParam(description = "The XML fragment to append") DiagramSchemas.AppendDiagramRequest request
     ) {
         try {
+            // 判断是否绑定了作用域
+            if (!DiagramContextUtil.CONVERSATION_ID.isBound()){
+                return ToolResult.error("System Error: ScopedValue noe bound");
+            }
+            // 当前的图表ID
+            String diagramId = DiagramContextUtil.CONVERSATION_ID.get();
             // 4. 【关键】在后端内部获取 currentXml
-            String currentXml = getMockCurrentXml();
+            Diagram diagram = diagramService.getById(diagramId);
+            String currentXml = diagram.getDiagramCode();
 
             String xmlFragment = request.getXml();
 
@@ -53,8 +68,9 @@ public class AppendDiagramTool {
             // Append to current XML
             String appendedXml = currentXml + "\n" + xmlFragment;
 
-            // 5. 【关键】把拼接好的结果保存回去
-            // diagramService.saveDraftXml(userId, appendedXml);
+            // 5. 【关键】把拼接好的结果保存到数据库中去
+            diagram.setDiagramCode(appendedXml);
+            diagramService.save(diagram);
 
             return ToolResult.success(
                     appendedXml,
@@ -66,10 +82,5 @@ public class AppendDiagramTool {
         }
     }
 
-    // 模拟获取当前 XML 的方法
-    private String getMockCurrentXml() {
-        // 在真实业务中，这里不要写死，要去查库
-        return "<mxGraphModel><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/>";
-    }
 
 }

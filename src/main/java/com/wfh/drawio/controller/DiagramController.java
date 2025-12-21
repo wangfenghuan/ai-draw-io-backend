@@ -53,12 +53,10 @@ public class DiagramController {
     @PostMapping("/add")
     public BaseResponse<Long> addDiagram(@RequestBody DiagramAddRequest diagramAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(diagramAddRequest == null, ErrorCode.PARAMS_ERROR);
-        // todo 在此处将实体类和 DTO 进行转换
         Diagram diagram = new Diagram();
         BeanUtils.copyProperties(diagramAddRequest, diagram);
         // 数据校验
         diagramService.validDiagram(diagram, true);
-        // todo 填充默认值
         User loginUser = userService.getLoginUser(request);
         diagram.setUserId(loginUser.getId());
         // 写入数据库
@@ -108,7 +106,6 @@ public class DiagramController {
         if (diagramUpdateRequest == null || diagramUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // todo 在此处将实体类和 DTO 进行转换
         Diagram diagram = new Diagram();
         BeanUtils.copyProperties(diagramUpdateRequest, diagram);
         // 数据校验
@@ -214,7 +211,6 @@ public class DiagramController {
         if (diagramEditRequest == null || diagramEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // todo 在此处将实体类和 DTO 进行转换
         Diagram diagram = new Diagram();
         BeanUtils.copyProperties(diagramEditRequest, diagram);
         // 数据校验
