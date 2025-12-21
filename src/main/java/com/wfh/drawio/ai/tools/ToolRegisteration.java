@@ -6,7 +6,6 @@ import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 /**
  * @Title: ToolRegisteration
@@ -14,28 +13,28 @@ import org.springframework.stereotype.Component;
  * @Package com.wfh.drawio.ai.tools
  * @Date 2025/12/20 20:41
  * @description: 工具注册器
+ *
+ * 工具现在由 Spring AI 自动扫描发现，无需手动注册
  */
-@Component
 @Configuration
 public class ToolRegisteration {
 
     @Resource
-    private EditDiagramTool editDiagramTool;
+    private CreateDiagramTool createDiagramTool;
 
     @Resource
     private AppendDiagramTool appendDiagramTool;
 
     @Resource
-    private CreateDiagramTool createDiagramTool;
+    private EditDiagramTool editDiagramTool;
 
-
-    /**
-     * 注册所有工具
-     * @return
-     */
     @Bean
-    public ToolCallback[] allTools(){
-        return ToolCallbacks.from(appendDiagramTool, createDiagramTool, editDiagramTool);
+    public ToolCallback[] allToolCallbacks(){
+        return ToolCallbacks.from(
+                createDiagramTool,
+                appendDiagramTool,
+                editDiagramTool
+        );
     }
 
 }

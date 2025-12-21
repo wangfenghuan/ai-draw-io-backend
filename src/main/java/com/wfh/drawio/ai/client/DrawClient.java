@@ -1,7 +1,10 @@
 package com.wfh.drawio.ai.client;
 
+import cn.hutool.json.JSONUtil;
 import com.wfh.drawio.ai.advisor.MyLoggerAdvisor;
 import com.wfh.drawio.ai.chatmemory.DbBaseChatMemory;
+import com.wfh.drawio.ai.model.StreamEvent;
+import com.wfh.drawio.ai.utils.DiagramContextUtil;
 import com.wfh.drawio.ai.utils.PromptUtil;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
@@ -13,6 +16,7 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 /**
  * @Title: DrawClient
@@ -26,6 +30,7 @@ public class DrawClient {
 
     private final ChatClient chatClient;
 
+    // 注入自动发现的所有工具
     @Resource
     private ToolCallback[] allTools;
 
@@ -33,6 +38,7 @@ public class DrawClient {
     private String model;
 
     public DrawClient(ChatModel openaiChatModel, DbBaseChatMemory dbBaseChatMemory){
+        // 在构造时不设置工具，避免循环依赖
         chatClient = ChatClient.builder(openaiChatModel)
                 .defaultSystem(PromptUtil.getSystemPrompt(model, true))
                 .defaultAdvisors(new MyLoggerAdvisor())
@@ -50,7 +56,7 @@ public class DrawClient {
         ChatResponse chatResponse = this.chatClient
                 .prompt()
                 .user(message)
-                .toolCallbacks(allTools)
+                .toolCallbacks(allTools)  // 调用时设置工具
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, diagramId))
                 .call()
                 .chatResponse();
@@ -66,12 +72,32 @@ public class DrawClient {
      * @return
      */
     public Flux<String> doChatStream(String message, String diagramId){
-
-        return chatClient.prompt()
+        // 创建旁路管道，用于接收工具层发出的日志和结果
+        Sinks.Many<StreamEvent> sideChannelSink = Sinks.many().unicast().onBackpressureBuffer();
+        Flux<String> toolLogFlux = sideChannelSink.asFlux()
+                .map(JSONUtil::toJsonStr);
+        Flux<String> aiResFlux = chatClient.prompt()
                 .user(message)
+                .toolCallbacks(allTools)  // 调用时设置工具
                 .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, diagramId))
-                .toolCallbacks(allTools)
-                .stream().content();
+                .stream()
+                .content()
+                .map(text -> JSONUtil.toJsonStr(StreamEvent.builder()
+                        .type("text")
+                        .content(text)
+                        .build()))
+                // 当ai流结束的时候关闭旁路管道
+                .doOnTerminate(sideChannelSink::tryEmitComplete);
 
+
+        // 合并流+绑定上下文
+        return  Flux.merge(toolLogFlux, aiResFlux)
+                .doOnSubscribe(subscription -> {
+                    // 开始请求的时候把sink和diagramId放入ThreadLocal
+                    DiagramContextUtil.bindSink(sideChannelSink);
+                })
+                .doFinally(signalType -> {
+                    DiagramContextUtil.clear();
+                });
     }
 }

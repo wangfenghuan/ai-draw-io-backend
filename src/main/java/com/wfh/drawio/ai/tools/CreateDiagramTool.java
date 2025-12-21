@@ -54,7 +54,8 @@ public class CreateDiagramTool {
             DiagramSchemas.CreateDiagramRequest request
     ) {
         try {
-
+            // 旁路日志
+            DiagramContextUtil.log("[display_diagram]创建图表:");
             // 判断是否绑定了作用域
             if (!DiagramContextUtil.CONVERSATION_ID.isBound()){
                 return ToolResult.error("System Error: ScopedValue noe bound");
@@ -95,7 +96,9 @@ public class CreateDiagramTool {
             diagram.setDiagramCode(xml);
             // 然后在保存
             diagramService.updateById(diagram);
-            log.info("创建的图表： {}", xml);
+            // 直接把结果推给前端渲染
+            DiagramContextUtil.result(xml);
+            DiagramContextUtil.log("diagram generated");
             return ToolResult.success(xml,
                     "Diagram created successfully. " + extractMxCellCount(xml) + " cells created.");
 

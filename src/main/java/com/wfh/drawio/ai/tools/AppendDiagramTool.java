@@ -2,7 +2,6 @@ package com.wfh.drawio.ai.tools;
 
 import com.wfh.drawio.ai.utils.DiagramContextUtil;
 import com.wfh.drawio.model.entity.Diagram;
-import com.wfh.drawio.service.ConversionService;
 import com.wfh.drawio.service.DiagramService;
 import jakarta.annotation.Resource;
 import org.springframework.ai.tool.annotation.Tool;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Component;
  * @description: 追加图表工具
  */
 @Component
-public class AppendDiagramTool {
+public class AppendDiagramTool  {
 
 
     @Resource
@@ -25,7 +24,7 @@ public class AppendDiagramTool {
 
     public AppendDiagramTool() {}
 
-    @Tool(description = """
+    @Tool(name = "append_diagram", description = """
         Continue generating diagram XML when previous create_diagram output was truncated due to length limits.
 
         WHEN TO USE: Only call this tool after create_diagram was truncated (you'll see an error about truncation).
