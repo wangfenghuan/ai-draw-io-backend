@@ -1,5 +1,6 @@
 package com.wfh.drawio.ai.tools;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wfh.drawio.ai.utils.DiagramContextUtil;
 import com.wfh.drawio.model.entity.Diagram;
 import com.wfh.drawio.service.DiagramService;
@@ -28,6 +29,17 @@ public class EditDiagramTool {
     @Tool(name = "edit_diagram", description = """
         Edit the current diagram by ID-based operations (update/add/delete cells).
 
+        Pass a JSON string with this structure:
+        {
+          "operations": [
+            {
+              "type": "update|add|delete",
+              "cell_id": "cellId",
+              "new_xml": "complete mxCell element (required for update/add)"
+            }
+          ]
+        }
+
         Operations:
         - update: Replace an existing cell by its id. Provide cell_id and complete new_xml.
         - add: Add a new cell. Provide cell_id (new unique id) and new_xml.
@@ -35,13 +47,22 @@ public class EditDiagramTool {
 
         For update/add, new_xml must be a complete mxCell element including mxGeometry.
 
-        ⚠️ JSON ESCAPING: Every " inside new_xml MUST be escaped as \\".
-        Example: id=\\"5\\" value=\\"Label\\"
+        Example JSON:
+        {
+          "operations": [
+            {
+              "type": "update",
+              "cell_id": "5",
+              "new_xml": "<mxCell id=\\"5\\" value=\\"Label\\"><mxGeometry x=\\"0\\" y=\\"0\\" width=\\"120\\" height=\\"60\\" as=\\"geometry\\"/></mxCell>"
+            }
+          ]
+        }
         """)
     public ToolResult<DiagramSchemas.EditDiagramRequest, String> execute(
-            @ToolParam(description = "The list of operations to perform on the diagram")
-            DiagramSchemas.EditDiagramRequest request
+            @ToolParam(description = "JSON string containing the list of operations to perform on the diagram")
+            String requestJson
     ) {
+        ObjectMapper objectMapper = new ObjectMapper();
         try {
             // 判断是否绑定了作用域
             if (!DiagramContextUtil.CONVERSATION_ID.isBound()){
@@ -51,6 +72,21 @@ public class EditDiagramTool {
             Diagram diagram = diagramService.getById(diagramId);
             String currentXml = diagram.getDiagramCode();
 
+            // Wrap mxCell fragments into complete drawio XML structure if needed
+            if (!currentXml.trim().startsWith("<mxfile")) {
+                currentXml = "<mxfile>\n" +
+                        "<mxGraphModel dx=\"1422\" dy=\"794\" grid=\"1\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" pageWidth=\"827\" pageHeight=\"1169\" math=\"0\" shadow=\"0\">\n" +
+                        "<root>\n" +
+                        "<mxCell id=\"0\"/>\n" +
+                        "<mxCell id=\"1\" parent=\"0\"/>\n" +
+                        currentXml + "\n" +
+                        "</root>\n" +
+                        "</mxGraphModel>\n" +
+                        "</mxfile>";
+            }
+
+            // Parse JSON string to EditDiagramRequest object
+            DiagramSchemas.EditDiagramRequest request = objectMapper.readValue(requestJson, DiagramSchemas.EditDiagramRequest.class);
             List<DiagramSchemas.EditOperation> operations = request.getOperations();
 
             if (operations == null || operations.isEmpty()) {
@@ -68,7 +104,6 @@ public class EditDiagramTool {
                     return ToolResult.error("new_xml is required for " + op.getType() + " operations");
                 }
             }
-
             // Apply operations
             DrawioXmlProcessor.OperationResult result = DrawioXmlProcessor.applyOperations(currentXml, operations);
 
@@ -77,16 +112,21 @@ public class EditDiagramTool {
             }
 
             // 3. 操作成功后，保存新的 XML 到数据库
-            diagram.setDiagramCode(result.resultXml);
+            // Extract mxCell elements only (similar to CreateDiagramTool behavior)
+            String savedXml = DrawioXmlProcessor.extractMxCellsOnly(result.resultXml);
+            diagram.setDiagramCode(savedXml);
             diagramService.updateById(diagram);
             return ToolResult.success(
-                    result.resultXml,
+                    savedXml,
                     "Edit operations applied successfully:\n" +
                             String.join("\n", result.appliedOperations) +
                             (result.errors.isEmpty() ? "" : "\nErrors: " + String.join(", ", result.errors))
             );
 
         } catch (Exception e) {
+            if (e instanceof com.fasterxml.jackson.core.JsonProcessingException) {
+                return ToolResult.error("Invalid JSON format: " + e.getMessage());
+            }
             return ToolResult.error("Failed to edit diagram: " + e.getMessage());
         }
     }

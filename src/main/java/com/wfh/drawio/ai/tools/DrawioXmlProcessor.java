@@ -69,6 +69,23 @@ public class DrawioXmlProcessor {
     }
 
     /**
+     * Extract only the mxCell elements (excluding root cells) from a complete drawio XML
+     * and return them as a concatenated string. This is used for saving to database
+     * in the same format as CreateDiagramTool.
+     */
+    public static String extractMxCellsOnly(String xml) {
+        List<CellElement> cells = extractMxCells(xml);
+        if (cells.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (CellElement cell : cells) {
+            sb.append(cell.xml).append("\n");
+        }
+        return sb.toString().trim();
+    }
+
+    /**
      * Apply operations to diagram XML using DOM parser
      */
     public static OperationResult applyOperations(String xmlContent, List<DiagramSchemas.EditOperation> operations) {
