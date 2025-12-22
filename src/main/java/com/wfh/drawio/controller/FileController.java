@@ -1,15 +1,14 @@
 package com.wfh.drawio.controller;
 
 import cn.hutool.core.io.FileUtil;
-import java.io.File;
+
 import java.util.Arrays;
 
 import com.wfh.drawio.common.BaseResponse;
 import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.common.ResultUtils;
-import com.wfh.drawio.constant.FileConstant;
 import com.wfh.drawio.exception.BusinessException;
-import com.wfh.drawio.manager.CosManager;
+import com.wfh.drawio.manager.MinioManager;
 import com.wfh.drawio.model.dto.file.UploadFileRequest;
 import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.enums.FileUploadBizEnum;
@@ -39,7 +38,7 @@ public class FileController {
     private UserService userService;
 
     @Resource
-    private CosManager cosManager;
+    private MinioManager minioManager;
 
 
     /**
@@ -64,25 +63,15 @@ public class FileController {
         String uuid = RandomStringUtils.randomAlphanumeric(8);
         String filename = uuid + "-" + multipartFile.getOriginalFilename();
         String filepath = String.format("/%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), filename);
-        File file = null;
+        String fileUrl = "";
         try {
             // 上传文件
-            file = File.createTempFile(filepath, null);
-            multipartFile.transferTo(file);
-            cosManager.putObject(filepath, file);
+            fileUrl = minioManager.putObject(filepath, multipartFile.getInputStream(), multipartFile);
             // 返回可访问地址
-            return ResultUtils.success(FileConstant.COS_HOST + filepath);
+            return ResultUtils.success(fileUrl);
         } catch (Exception e) {
             log.error("file upload error, filepath = " + filepath, e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
-        } finally {
-            if (file != null) {
-                // 删除临时文件
-                boolean delete = file.delete();
-                if (!delete) {
-                    log.error("file delete error, filepath = {}", filepath);
-                }
-            }
         }
     }
 

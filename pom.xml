@@ -95,12 +95,6 @@
             <artifactId>hutool-all</artifactId>
             <version>5.8.38</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.qcloud/cos_api -->
-        <dependency>
-            <groupId>com.qcloud</groupId>
-            <artifactId>cos_api</artifactId>
-            <version>5.6.245</version>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/org.freemarker/freemarker -->
         <dependency>
             <groupId>org.freemarker</groupId>
@@ -118,6 +112,12 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.minio/minio -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.17</version>
         </dependency>
     </dependencies>
 
