@@ -1,6 +1,7 @@
 package com.wfh.drawio.ai.chatmemory;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wfh.drawio.model.entity.Conversion;
 import com.wfh.drawio.model.entity.Diagram;
 import com.wfh.drawio.service.ConversionService;
@@ -35,6 +36,8 @@ public class DbBaseChatMemory implements ChatMemory {
 
     @Resource
     private DiagramService diagramService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void add(@NotNull String conversationId, @NotNull List<Message> messages) {
