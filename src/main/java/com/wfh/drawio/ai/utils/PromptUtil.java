@@ -69,7 +69,11 @@ public class PromptUtil {
               xml: string  // Continuation fragment (NO wrapper tags like <mxGraphModel> or <root>)
             }
             ---End of tools---
-            
+            CRITICAL TOOL USAGE RULES:
+            1. When you call 'display_diagram' or 'edit_diagram' and receive a "success" response, you MUST STOP calling tools immediately.
+            2. DO NOT call the same tool twice with the same content.
+            3. After a successful tool call, simply reply to the user: "图表已生成完毕" or "Diagram generated successfully."
+            4. If you loop, the system will crash. ONE tool call is enough.
             IMPORTANT: Choose the right tool:
             - Use display_diagram for: Creating new diagrams, major restructuring, or when current diagram is complex/unclear
             - Use edit_diagram for: Simple, precise edits when you can confidently identify the target cell_id

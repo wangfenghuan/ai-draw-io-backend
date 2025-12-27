@@ -96,29 +96,33 @@ public class DrawClient {
      * @return
      */
     public Flux<String> doChatStream(String message, String diagramId, String modelId){
-        // 创建旁路管道
+        // 1. 创建旁路管道
         Sinks.Many<StreamEvent> sideChannelSink = Sinks.many().unicast().onBackpressureBuffer();
-
-        Flux<String> toolLogFlux = sideChannelSink.asFlux().map(JSONUtil::toJsonStr);
-
+        // 2. 将管道转换为流，并处理 JSON 序列化
+        Flux<String> toolLogFlux = sideChannelSink.asFlux()
+                .map(JSONUtil::toJsonStr);
         ChatClient chatClient = createChatClient(modelId);
-
+        // 3. AI 主回复流
         Flux<String> aiResFlux = chatClient.prompt()
                 .user(message)
                 .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, diagramId))
                 .stream()
                 .content()
+                .filter(content -> content != null) // 过滤掉 ToolCall 产生的 null 帧
                 .map(text -> JSONUtil.toJsonStr(StreamEvent.builder()
                         .type("text")
                         .content(text)
-                        .build()));
+                        .build()))
+                // 当 AI 流结束时，关闭旁路管道。这是 Flux.merge 能结束的关键。
+                .doOnTerminate(sideChannelSink::tryEmitComplete);
+        // 4. 合并流 + 注入上下文
         return Flux.merge(toolLogFlux, aiResFlux)
-                .doOnTerminate(sideChannelSink::tryEmitComplete)
-                // 【核心修复】：将 sink 和 diagramId 写入 Reactor Context
-                // Accessor 会自动将其搬运到 Tool 执行线程的 ThreadLocal
+                // 【核心修复】：使用 contextWrite 显式注入 Sink，确保它存在于 Reactor Context 中
                 .contextWrite(ctx -> ctx
                         .put(DiagramContextUtil.KEY_SINK, sideChannelSink)
                         .put(DiagramContextUtil.KEY_CONVERSATION_ID, diagramId)
-                );
+                )
+                // 这里的 doFinally 只负责清理 ThreadLocal 防止污染，不负责传递
+                .doFinally(signalType -> DiagramContextUtil.clear());
     }
 }
