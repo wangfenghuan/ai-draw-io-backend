@@ -20,6 +20,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 
@@ -30,6 +32,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -41,8 +44,25 @@ import java.util.stream.Collectors;
 public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> implements DiagramService {
 
     @Resource
-    private UserService userService;
+    private RedissonClient redissonClient;
 
+    @Override
+    public boolean tryAcquireLock(String roomName){
+        String lockKey = "lock:snapshot:" + roomName;
+        RLock lock = redissonClient.getLock(lockKey);
+
+        try {
+            boolean isLocked = lock.tryLock(0, 5, TimeUnit.MINUTES);
+            if (isLocked) {
+                log.info("房间 [{}] 抢锁成功，进入冷却期(5min)", roomName);
+            } else {
+            }
+            return isLocked;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
 
     /**
      * 下载文件

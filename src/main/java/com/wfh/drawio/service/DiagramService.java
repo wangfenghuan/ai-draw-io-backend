@@ -17,6 +17,9 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 public interface DiagramService extends IService<Diagram> {
 
+
+    boolean tryAcquireLock(String roomName);
+
     /**
      * 下载
      * @param remoteUrl

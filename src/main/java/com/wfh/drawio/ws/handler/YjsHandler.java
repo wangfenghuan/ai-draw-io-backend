@@ -4,6 +4,7 @@ import com.wfh.drawio.mapper.RoomSnapshotsMapper;
 import com.wfh.drawio.mapper.RoomUpdatesMapper;
 import com.wfh.drawio.model.entity.RoomSnapshots;
 import com.wfh.drawio.model.entity.RoomUpdates;
+import com.wfh.drawio.ws.service.RoomUpdateBatchService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +15,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +49,9 @@ public class YjsHandler extends BinaryWebSocketHandler {
 
     @Resource
     private RoomUpdatesMapper roomUpdatesMapper;
+
+    @Resource
+    private RoomUpdateBatchService batchService;
 
     /**
      * 连接建立之后
@@ -96,7 +101,10 @@ public class YjsHandler extends BinaryWebSocketHandler {
         byte[] payload = message.getPayload().array();
 
         // 持久化，保存更新数据
-        roomHistory.computeIfAbsent(roomName, k->new CopyOnWriteArrayList<>()).add(payload);
+        RoomUpdates roomUpdates = new RoomUpdates();
+        roomUpdates.setUpdateData(payload);
+        roomUpdates.setRoomName(roomName);
+        batchService.addUpdate(roomUpdates);
         // 广播，转发给同房间的其他的用户
         Set<WebSocketSession> webSocketSessions = roomSession.get(roomName);
         if (webSocketSessions != null){

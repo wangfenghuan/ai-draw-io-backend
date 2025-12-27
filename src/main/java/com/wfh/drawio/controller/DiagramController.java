@@ -56,6 +56,15 @@ public class DiagramController {
     @Resource
     private MinioManager minioManager;
 
+    /**
+     * 1. 检查是否有权上传 (抢锁)
+     * GET /api/snapshot/check-lock/room-101
+     */
+    @GetMapping("/check-lock/{roomName}")
+    public boolean checkLock(@PathVariable String roomName) {
+        return diagramService.tryAcquireLock(roomName);
+    }
+
 
     /**
      * 上传图表到minio
