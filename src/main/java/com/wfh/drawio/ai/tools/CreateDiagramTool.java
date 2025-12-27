@@ -35,6 +35,7 @@ public class CreateDiagramTool {
         4. Every mxCell needs a unique id (start from "2")
         5. Every mxCell needs a valid parent attribute (use "1" for top-level)
         6. Escape special chars in values: &lt; &gt; &amp; &quot;
+        7. DO NOT wrap the output in markdown code blocks (e.g. ```xml ... ```), return raw string.
 
         Example (generate ONLY this - no wrapper tags):
         <mxCell id="lane1" value="Frontend" style="swimlane;" vertex="1" parent="1">
@@ -48,15 +49,20 @@ public class CreateDiagramTool {
         - For AWS diagrams, use AWS 2025 icons.
         - For animated connectors, add "flowAnimation=1" to edge style.
         """)
-    public ToolResult<DiagramSchemas.CreateDiagramRequest, String> displayDiagram(
-            @ToolParam(description = "The request object containing the generated XML string with mxCell elements")
-            DiagramSchemas.CreateDiagramRequest request
+    public ToolResult<String, String> displayDiagram(
+            @ToolParam(description = "The generated XML string containing ONLY mxCell elements")
+            String xml
     ) {
         log.info("=== CreateDiagramTool.execute() 开始执行 ===");
         try {
             // 旁路日志
             DiagramContextUtil.log("[display_diagram]创建图表:");
             log.info("[display_diagram]创建图表开始");
+
+            if (xml == null) {
+                log.error("错误: 参数 xml 为 null");
+                return ToolResult.error("Parameter 'xml' is null.");
+            }
 
             // 判断是否绑定了作用域
             String diagramId = DiagramContextUtil.getConversationId();
@@ -67,12 +73,19 @@ public class CreateDiagramTool {
             // 当前的图表ID
             log.info("获取到 diagramId: {}", diagramId);
 
-            String xml = request.getXml();
-            log.info("接收到 XML 长度: {}", xml == null ? "null" : xml.length());
+            // 清洗 Markdown 代码块标记
+            if (xml.startsWith("```xml")) {
+                xml = xml.replace("```xml", "").replace("```", "");
+            } else if (xml.startsWith("```")) {
+                xml = xml.replace("```", "");
+            }
+            xml = xml.trim();
+
+            log.info("接收到 XML 长度: {}", xml.length());
             log.debug("XML 内容: {}", xml);
 
             // 1. 基础防错校验
-            if (xml == null || xml.trim().isEmpty()) {
+            if (xml.isEmpty()) {
                 log.error("错误: XML 内容为空");
                 return ToolResult.error("Invalid XML content: empty");
             }

@@ -5,6 +5,7 @@ import com.wfh.drawio.ai.utils.DiagramContextUtil;
 import com.wfh.drawio.model.entity.Diagram;
 import com.wfh.drawio.service.DiagramService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -19,12 +20,16 @@ import java.util.List;
  * @description: 编辑图表工具
  */
 @Component
+@Slf4j
 public class EditDiagramTool {
 
     public EditDiagramTool() {}
 
     @Resource
     private DiagramService diagramService;
+
+    // Jackson ObjectMapper 实例
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Tool(name = "edit_diagram", description = """
         Edit the current diagram by ID-based operations (update/add/delete cells).
@@ -57,73 +62,106 @@ public class EditDiagramTool {
             }
           ]
         }
+        
+        IMPORTANT: DO NOT wrap the output in markdown code blocks (e.g. ```json ... ```), return raw JSON string.
         """)
-    public ToolResult<DiagramSchemas.EditDiagramRequest, String> editDiagram(
+    public ToolResult<String, String> editDiagram(
             @ToolParam(description = "JSON string containing the list of operations to perform on the diagram")
             String requestJson
     ) {
-        ObjectMapper objectMapper = new ObjectMapper();
+        log.info("=== EditDiagramTool.execute() 开始执行 ===");
         try {
-            // 判断是否绑定了作用域
+            // 1. 参数清洗
+            if (requestJson == null || requestJson.trim().isEmpty()) {
+                return ToolResult.error("Request JSON is empty");
+            }
+
+            // 清洗 Markdown 代码块标记 (```json)
+            if (requestJson.startsWith("```json")) {
+                requestJson = requestJson.replace("```json", "").replace("```", "");
+            } else if (requestJson.startsWith("```")) {
+                requestJson = requestJson.replace("```", "");
+            }
+            requestJson = requestJson.trim();
+
+            log.info("接收到编辑指令长度: {}", requestJson.length());
+            log.debug("编辑指令内容: {}", requestJson);
+
+            // 2. 作用域检查
             String diagramId = DiagramContextUtil.getConversationId();
             if (diagramId == null){
+                log.error("错误: ThreadLocal CONVERSATION_ID 未绑定");
                 return ToolResult.error("System Error: ThreadLocal not bound");
             }
-            Diagram diagram = diagramService.getById(diagramId);
-            String currentXml = diagram.getDiagramCode();
 
-            // Wrap mxCell fragments into complete drawio XML structure if needed
+            // 3. 获取并准备数据
+            Diagram diagram = diagramService.getById(diagramId);
+            if (diagram == null) {
+                return ToolResult.error("Diagram not found: " + diagramId);
+            }
+            String currentXml = diagram.getDiagramCode();
+            if (currentXml == null) currentXml = "";
+
+            // 确保是完整的 XML 结构以便进行 DOM 操作
             if (!currentXml.trim().startsWith("<mxfile")) {
+                log.info("检测到非标准结构，进行包装...");
                 currentXml = DrawioXmlProcessor.wrapWithModel(currentXml);
             }
 
-            // Parse JSON string to EditDiagramRequest object
-            DiagramSchemas.EditDiagramRequest request = objectMapper.readValue(requestJson, DiagramSchemas.EditDiagramRequest.class);
-            List<DiagramSchemas.EditOperation> operations = request.getOperations();
+            // 4. 解析 JSON
+            DiagramSchemas.EditDiagramRequest request;
+            try {
+                request = objectMapper.readValue(requestJson, DiagramSchemas.EditDiagramRequest.class);
+            } catch (Exception e) {
+                log.error("JSON 解析失败: {}", e.getMessage());
+                return ToolResult.error("Invalid JSON format: " + e.getMessage());
+            }
 
+            List<DiagramSchemas.EditOperation> operations = request.getOperations();
             if (operations == null || operations.isEmpty()) {
                 return ToolResult.error("Operations list cannot be empty");
             }
 
-            // Validate each operation
+            // 5. 校验操作参数
             for (DiagramSchemas.EditOperation op : operations) {
                 if (op.getType() == null || op.getCellId() == null) {
                     return ToolResult.error("Each operation must have type and cell_id");
                 }
-                boolean res = ("update".equals(op.getType()) || "add".equals(op.getType())) &&
-                        (op.getNewXml() == null || op.getNewXml().trim().isEmpty());
-                if (res) {
+                boolean needXml = "update".equals(op.getType()) || "add".equals(op.getType());
+                if (needXml && (op.getNewXml() == null || op.getNewXml().trim().isEmpty())) {
                     return ToolResult.error("new_xml is required for " + op.getType() + " operations");
                 }
             }
-            // Apply operations
+
+            // 6. 执行操作
+            log.info("开始应用 {} 个编辑操作...", operations.size());
             DrawioXmlProcessor.OperationResult result = DrawioXmlProcessor.applyOperations(currentXml, operations);
 
             if (!result.success) {
+                log.error("编辑操作失败: {}", result.errors);
                 return ToolResult.error("Failed to apply operations: " + String.join(", ", result.errors));
             }
 
-            // 3. 操作成功后，保存新的 XML 到数据库
-            // Extract mxCell elements only (similar to CreateDiagramTool behavior)
+            // 7. 保存结果
             String savedXml = result.resultXml;
             diagram.setDiagramCode(savedXml);
             diagramService.updateById(diagram);
-            // 推送给前端，完整的xml
+
+            // 推送给前端
+            log.info("推送更新后的图表...");
             DiagramContextUtil.result(savedXml);
+
+            log.info("=== EditDiagramTool.execute() 执行完成 ===");
             return ToolResult.success(
-                    "updated",
+                    requestJson, // 返回原始请求作为 context
                     "Edit operations applied successfully:\n" +
                             String.join("\n", result.appliedOperations) +
                             (result.errors.isEmpty() ? "" : "\nErrors: " + String.join(", ", result.errors))
             );
 
         } catch (Exception e) {
-            if (e instanceof com.fasterxml.jackson.core.JsonProcessingException) {
-                return ToolResult.error("Invalid JSON format: " + e.getMessage());
-            }
+            log.error("编辑图表系统异常: ", e);
             return ToolResult.error("Failed to edit diagram: " + e.getMessage());
         }
     }
-
-
 }

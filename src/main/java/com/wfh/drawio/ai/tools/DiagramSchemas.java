@@ -18,14 +18,7 @@ import java.util.List;
  */
 public class DiagramSchemas {
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class CreateDiagramRequest {
-        @NotBlank(message = "XML content is required")
-        @JsonProperty("xml")
-        private String xml;
-    }
+    // 已移除 CreateDiagramRequest，因为 CreateDiagramTool 现在直接接收 String 类型的 xml 参数
 
     @Data
     @NoArgsConstructor
@@ -51,14 +44,5 @@ public class DiagramSchemas {
         @NotEmpty(message = "Operations array is required")
         @JsonProperty("operations")
         private List<EditOperation> operations;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class AppendDiagramRequest {
-        @NotBlank(message = "XML content is required")
-        @JsonProperty("xml")
-        private String xml;
     }
 }

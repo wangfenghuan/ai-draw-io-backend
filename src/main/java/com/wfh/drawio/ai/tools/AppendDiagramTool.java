@@ -4,6 +4,7 @@ import com.wfh.drawio.ai.utils.DiagramContextUtil;
 import com.wfh.drawio.model.entity.Diagram;
 import com.wfh.drawio.service.DiagramService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -16,8 +17,8 @@ import org.springframework.stereotype.Component;
  * @description: 追加图表工具
  */
 @Component
-public class AppendDiagramTool  {
-
+@Slf4j
+public class AppendDiagramTool {
 
     @Resource
     private DiagramService diagramService;
@@ -34,37 +35,66 @@ public class AppendDiagramTool  {
         2. Continue from EXACTLY where your previous output stopped
         3. Complete the remaining mxCell elements
         4. If still truncated, call append_diagram again with the next fragment
+        5. DO NOT wrap the output in markdown code blocks (e.g. ```xml ... ```), return raw string.
         """)
-    public ToolResult<DiagramSchemas.AppendDiagramRequest, String> appendDiagram(
-            @ToolParam(description = "The XML fragment to append") DiagramSchemas.AppendDiagramRequest request
+    public ToolResult<String, String> appendDiagram(
+            @ToolParam(description = "The XML fragment to append (ONLY mxCell elements)")
+            String xmlFragment
     ) {
+        log.info("=== AppendDiagramTool.execute() 开始执行 ===");
         try {
-            // 判断是否绑定了作用域
+            // 1. 参数校验与清洗
+            if (xmlFragment == null) {
+                return ToolResult.error("Parameter 'xmlFragment' is null.");
+            }
+
+            // 清洗 Markdown 代码块标记
+            if (xmlFragment.startsWith("```xml")) {
+                xmlFragment = xmlFragment.replace("```xml", "").replace("```", "");
+            } else if (xmlFragment.startsWith("```")) {
+                xmlFragment = xmlFragment.replace("```", "");
+            }
+            xmlFragment = xmlFragment.trim();
+
+            log.info("接收到追加片段长度: {}", xmlFragment.length());
+
+            if (xmlFragment.isEmpty()) {
+                return ToolResult.error("XML fragment is empty.");
+            }
+
+            // 2. 判断是否绑定了作用域
             String diagramId = DiagramContextUtil.getConversationId();
             if (diagramId == null){
+                log.error("错误: ThreadLocal CONVERSATION_ID 未绑定");
                 return ToolResult.error("System Error: ThreadLocal not bound");
             }
-            // 当前的图表ID
-            // 4. 【关键】在后端内部获取 currentXml
+
+            // 3. 在后端内部获取 currentXml
             Diagram diagram = diagramService.getById(diagramId);
+            if (diagram == null) {
+                return ToolResult.error("Diagram not found: " + diagramId);
+            }
             String currentXml = diagram.getDiagramCode();
+            if (currentXml == null) {
+                currentXml = "";
+            }
 
-            String xmlFragment = request.getXml();
-
-            // Validation
+            // 4. 业务规则校验
             if (xmlFragment.contains("UPDATE") || xmlFragment.contains("cell_id") || xmlFragment.contains("operations")) {
                 return ToolResult.error("Invalid fragment: contains edit operation markers");
             }
 
-            // Validate XML fragment
+            // 5. XML 结构校验 (包裹一层 wrapper 进行校验)
             DrawioXmlProcessor.ValidationResult validation =
                     DrawioXmlProcessor.validateAndParseXml("<wrapper>" + xmlFragment + "</wrapper>");
 
             if (!validation.valid) {
+                log.error("追加片段校验失败: {}", validation.error);
                 return ToolResult.error("XML fragment validation failed: " + validation.error);
             }
+
             String finalXml = "";
-            // 核心修改逻辑：判断是否是完整 XML，决定插入位置
+            // 6. 核心拼接逻辑：判断是否是完整 XML，决定插入位置
             if (currentXml.trim().startsWith("<mxfile")) {
                 // 如果是完整 XML，需要插入到 </root> 之前
                 int rootEndIndex = currentXml.lastIndexOf("</root>");
@@ -74,8 +104,7 @@ public class AppendDiagramTool  {
                     String afterRootEnd = currentXml.substring(rootEndIndex);
                     finalXml = beforeRootEnd + "\n" + xmlFragment + "\n" + afterRootEnd;
                 } else {
-                    // 异常情况：有 mxfile 头但没 root 尾？直接硬追加或报错
-                    // 这里选择兜底策略：硬追加，虽然可能无效
+                    // 异常情况：有 mxfile 头但没 root 尾？直接硬追加作为兜底
                     finalXml = currentXml + "\n" + xmlFragment;
                 }
             } else {
@@ -85,20 +114,23 @@ public class AppendDiagramTool  {
                 finalXml = DrawioXmlProcessor.wrapWithModel(tempXml);
             }
 
-            // 5. 【关键】把拼接好的结果保存到数据库中去
+            // 7. 保存结果
+            log.info("拼接完成，更新数据库...");
             diagram.setDiagramCode(finalXml);
             diagramService.updateById(diagram);
+
             // 推送给前端渲染
             DiagramContextUtil.result(finalXml);
+
+            log.info("=== AppendDiagramTool.execute() 执行完成 ===");
             return ToolResult.success(
-                    "XML fragment appended successfully.",
+                    xmlFragment,
                     "XML fragment appended successfully. Total cells: " + DrawioXmlProcessor.extractMxCells(finalXml).size()
             );
 
         } catch (Exception e) {
+            log.error("追加图表异常: ", e);
             return ToolResult.error("Failed to append diagram: " + e.getMessage());
         }
     }
-
-
 }
