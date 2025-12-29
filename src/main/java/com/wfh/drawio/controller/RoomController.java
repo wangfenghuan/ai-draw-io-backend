@@ -18,6 +18,7 @@ import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.RoomVO;
 import com.wfh.drawio.service.DiagramRoomService;
 import com.wfh.drawio.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
@@ -48,6 +49,7 @@ public class RoomController {
      * @return
      */
     @PostMapping("/add")
+    @Operation(summary = "创建房间")
     public BaseResponse<Long> addRoom(@RequestBody RoomAddRequest roomAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(roomAddRequest == null, ErrorCode.PARAMS_ERROR);
 
@@ -72,6 +74,7 @@ public class RoomController {
      * @return
      */
     @PostMapping("/delete")
+    @Operation(summary = "删除房间")
     public BaseResponse<Boolean> deleteDiagramRoom(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -99,6 +102,7 @@ public class RoomController {
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Operation(summary = "更新房间信息（仅管理员可用）")
     public BaseResponse<Boolean> updateDiagramRoom(@RequestBody RoomUpdateRequest roomUpdateRequest) {
         if (roomUpdateRequest == null || roomUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -124,6 +128,7 @@ public class RoomController {
      * @return
      */
     @GetMapping("/get/vo")
+    @Operation(summary = "根据 id 获取房间（封装类）")
     public BaseResponse<RoomVO> getDiagramRoomVOById(long id, HttpServletRequest request) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询数据库
@@ -141,6 +146,7 @@ public class RoomController {
      */
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Operation(summary = "分页获取房间列表（仅管理员可用）")
     public BaseResponse<Page<DiagramRoom>> listDiagramRoomByPage(@RequestBody RoomQueryRequest roomQueryRequest) {
         long current = roomQueryRequest.getCurrent();
         long size = roomQueryRequest.getPageSize();
@@ -158,6 +164,7 @@ public class RoomController {
      * @return
      */
     @PostMapping("/list/page/vo")
+    @Operation(summary = "分页获取房间列表（封装类）")
     public BaseResponse<Page<RoomVO>> listDiagramRoomVOByPage(@RequestBody RoomQueryRequest roomQueryRequest,
                                                              HttpServletRequest request) {
         long current = roomQueryRequest.getCurrent();
@@ -179,6 +186,7 @@ public class RoomController {
      * @return
      */
     @PostMapping("/my/list/page/vo")
+    @Operation(summary = "分页获取当前登录用户创建的房间列表")
     public BaseResponse<Page<RoomVO>> listMyDiagramRoomVOByPage(@RequestBody RoomQueryRequest roomQueryRequest,
                                                                HttpServletRequest request) {
         ThrowUtils.throwIf(roomQueryRequest == null, ErrorCode.PARAMS_ERROR);
@@ -204,6 +212,7 @@ public class RoomController {
      * @return
      */
     @PostMapping("/edit")
+    @Operation(summary = "编辑房间（给用户使用）")
     public BaseResponse<Boolean> editDiagramRoom(@RequestBody RoomEditRequest roomEditRequest, HttpServletRequest request) {
         if (roomEditRequest == null || roomEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

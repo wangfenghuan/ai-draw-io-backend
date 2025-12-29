@@ -2,6 +2,7 @@ package com.wfh.drawio.model.vo;
 
 import cn.hutool.json.JSONUtil;
 import com.wfh.drawio.model.entity.Diagram;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
@@ -15,31 +16,37 @@ import java.util.List;
  * @author fenghuanwang
  */
 @Data
+@Schema(name = "DiagramVO", description = "图表视图对象")
 public class DiagramVO implements Serializable {
 
     /**
      * id
      */
+    @Schema(description = "图表ID", example = "123456789")
     private Long id;
 
     /**
      * 标题
      */
+    @Schema(description = "图表标题", example = "系统架构图")
     private String name;
 
     /**
      * 创建用户 id
      */
+    @Schema(description = "创建用户ID", example = "10001")
     private Long userId;
 
     /**
      * 创建时间
      */
+    @Schema(description = "创建时间", example = "2024-01-01 10:00:00")
     private Date createTime;
 
     /**
      * 更新时间
      */
+    @Schema(description = "更新时间", example = "2024-01-01 10:00:00")
     private Date updateTime;
 
 

@@ -19,6 +19,7 @@ import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.LoginUserVO;
 import com.wfh.drawio.model.vo.UserVO;
 import com.wfh.drawio.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -61,6 +62,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/register")
+    @Operation(summary = "用户注册")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -83,6 +85,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/login")
+    @Operation(summary = "用户登录")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -103,6 +106,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/logout")
+    @Operation(summary = "用户推出登录")
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
         if (request == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -118,6 +122,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/get/login")
+    @Operation(summary = "获取当前登录用户")
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User user = userService.getLoginUser(request);
         return ResultUtils.success(userService.getLoginUserVO(user));
@@ -135,6 +140,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/add")
+    @Operation(summary = "创建用户")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest, HttpServletRequest request) {
         if (userAddRequest == null) {
@@ -159,6 +165,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/delete")
+    @Operation(summary = "删除用户")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
@@ -176,6 +183,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/update")
+    @Operation(summary = "更新用户")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest,
             HttpServletRequest request) {
@@ -197,6 +205,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/get")
+    @Operation(summary = "根据 id 获取用户（仅管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<User> getUserById(long id, HttpServletRequest request) {
         if (id <= 0) {
@@ -215,6 +224,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/get/vo")
+    @Operation(summary = "根据 id 获取包装类")
     public BaseResponse<UserVO> getUserVOById(long id, HttpServletRequest request) {
         BaseResponse<User> response = getUserById(id, request);
         User user = response.getData();
@@ -229,6 +239,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/list/page")
+    @Operation(summary = "分页获取用户列表（仅管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<User>> listUserByPage(@RequestBody UserQueryRequest userQueryRequest,
             HttpServletRequest request) {
@@ -247,6 +258,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/list/page/vo")
+    @Operation(summary = "分页获取用户封装列表")
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest,
             HttpServletRequest request) {
         if (userQueryRequest == null) {
@@ -274,6 +286,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/update/my")
+    @Operation(summary = "更新个人信息")
     public BaseResponse<Boolean> updateMyUser(@RequestBody UserUpdateMyRequest userUpdateMyRequest,
             HttpServletRequest request) {
         if (userUpdateMyRequest == null) {

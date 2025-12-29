@@ -18,6 +18,7 @@ import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.enums.FileUploadBizEnum;
 import com.wfh.drawio.model.vo.DiagramVO;
 import com.wfh.drawio.service.*;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -62,6 +63,7 @@ public class DiagramController {
      * @return
      */
     @GetMapping("/check-lock/{roomId}")
+    @Operation(summary = "检查是否有上传权限，抢锁，用于决定：抢到锁的客户端进行图表操作快照的上传")
     public boolean checkLock(@PathVariable Long roomId) {
         return diagramService.tryAcquireLock(String.valueOf(roomId));
     }
@@ -73,6 +75,7 @@ public class DiagramController {
      * @return
      */
     @PostMapping("/uploadSnapshot/{roomId}")
+    @Operation(summary = "上传图表快照")
     public BaseResponse<Boolean> uploadSnapshot(@PathVariable Long roomId, @RequestBody byte[] snampshotData){
         RoomSnapshots byId = snapshotsService.getById(roomId);
         if (byId == null){
@@ -96,6 +99,7 @@ public class DiagramController {
      * @return
      */
     @PostMapping("/upload")
+    @Operation(summary = "上传图表到minio")
     private BaseResponse<String> uploadDiagram(@RequestPart("file") MultipartFile multipartFile, @RequestBody DiagramUploadRequest diagramUploadRequest, HttpServletRequest request){
         String biz = diagramUploadRequest.getBiz();
         Long diagramId = diagramUploadRequest.getDiagramId();
@@ -143,6 +147,7 @@ public class DiagramController {
      * @param response  HttpServletResponse 对象，用于直接操作输出流
      */
     @GetMapping("/stream-download")
+    @Operation(summary = "流式代理下载接口， 根据type。有SVG，PNG和XML格式")
     public void downloadRemoteFile(@RequestParam(required = false) String fileName,
                                    @RequestParam() String type,
                                    @RequestParam() Long diagramId,
@@ -208,6 +213,7 @@ public class DiagramController {
      * @return
      */
     @PostMapping("/add")
+    @Operation(summary = "创建图表")
     public BaseResponse<Long> addDiagram(@RequestBody DiagramAddRequest diagramAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(diagramAddRequest == null, ErrorCode.PARAMS_ERROR);
         Diagram diagram = new Diagram();
@@ -232,6 +238,7 @@ public class DiagramController {
      * @return
      */
     @PostMapping("/delete")
+    @Operation(summary = "删除图表")
     public BaseResponse<Boolean> deleteDiagram(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -259,6 +266,7 @@ public class DiagramController {
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Operation(summary = "更新图表（仅管理员admin可用）")
     public BaseResponse<Boolean> updateDiagram(@RequestBody DiagramUpdateRequest diagramUpdateRequest) {
         if (diagramUpdateRequest == null || diagramUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -284,6 +292,7 @@ public class DiagramController {
      * @return
      */
     @GetMapping("/get/vo")
+    @Operation(summary = "根据 id 获取图表（封装类）")
     public BaseResponse<DiagramVO> getDiagramVOById(long id, HttpServletRequest request) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询数据库
@@ -301,6 +310,7 @@ public class DiagramController {
      */
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @Operation(summary = "分页获取图表列表（仅管理员可用））")
     public BaseResponse<Page<Diagram>> listDiagramByPage(@RequestBody DiagramQueryRequest diagramQueryRequest) {
         long current = diagramQueryRequest.getCurrent();
         long size = diagramQueryRequest.getPageSize();
@@ -318,6 +328,7 @@ public class DiagramController {
      * @return
      */
     @PostMapping("/list/page/vo")
+    @Operation(summary = "分页获取图表列表（封装类））")
     public BaseResponse<Page<DiagramVO>> listDiagramVOByPage(@RequestBody DiagramQueryRequest diagramQueryRequest,
                                                                HttpServletRequest request) {
         long current = diagramQueryRequest.getCurrent();
@@ -339,6 +350,7 @@ public class DiagramController {
      * @return
      */
     @PostMapping("/my/list/page/vo")
+    @Operation(summary = "分页获取当前登录用户创建的图表列表")
     public BaseResponse<Page<DiagramVO>> listMyDiagramVOByPage(@RequestBody DiagramQueryRequest diagramQueryRequest,
                                                                  HttpServletRequest request) {
         ThrowUtils.throwIf(diagramQueryRequest == null, ErrorCode.PARAMS_ERROR);
@@ -357,13 +369,14 @@ public class DiagramController {
     }
 
     /**
-     * 编辑图表（给用户使用）
+     * 编辑图表信息（给用户使用）
      *
      * @param diagramEditRequest
      * @param request
      * @return
      */
     @PostMapping("/edit")
+    @Operation(summary = "编辑图表信息（给用户使用）")
     public BaseResponse<Boolean> editDiagram(@RequestBody DiagramEditRequest diagramEditRequest, HttpServletRequest request) {
         if (diagramEditRequest == null || diagramEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

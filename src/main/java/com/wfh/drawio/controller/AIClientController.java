@@ -1,11 +1,13 @@
 package com.wfh.drawio.controller;
 
+import com.github.xiaoymin.knife4j.annotations.ApiOperationSupport;
 import com.wfh.drawio.ai.client.DrawClient;
 import com.wfh.drawio.ai.utils.DiagramContextUtil;
 import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.model.dto.diagram.CustomChatRequest;
 import com.wfh.drawio.service.AiService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +43,7 @@ public class AIClientController {
      * @return
      */
     @PostMapping("/gen")
+    @Deprecated
     public String doChat(String message, String diagramId, String modelId){
         // 绑定会话ID到ThreadLocal
         DiagramContextUtil.bindConversationId(diagramId);
@@ -53,11 +56,12 @@ public class AIClientController {
     }
 
     /**
-     * 流式生成图表
+     * 系统默认llm流式生成图表
      * @param request
      * @return
      */
     @PostMapping("/stream")
+    @Operation(summary = "系统默认llm流式生成图表")
     public SseEmitter doChatStream(@RequestBody CustomChatRequest request){
         String message = request.getMessage();
         String diagramId = request.getDiagramId();
@@ -71,12 +75,13 @@ public class AIClientController {
     }
 
     /**
-     * 使用自定义的模型生成图表
+     * 使用自定义的llm生成图表
      *
      * @param request
      * @return
      */
     @PostMapping("/custom/stream")
+    @Operation(summary = "使用自定义的llm生成图表")
     public SseEmitter doCustomChatStream(@RequestBody CustomChatRequest request) {
         String message = request.getMessage();
         String diagramId = request.getDiagramId();
