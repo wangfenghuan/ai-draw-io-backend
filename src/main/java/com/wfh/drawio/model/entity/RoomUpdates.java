@@ -24,7 +24,7 @@ public class RoomUpdates {
     /**
      * 房间/文件ID
      */
-    private String roomName;
+    private Long roomName;
 
     /**
      * 产生时间

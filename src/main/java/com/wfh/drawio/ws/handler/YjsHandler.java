@@ -15,12 +15,10 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
 import java.net.URI;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
@@ -39,10 +37,6 @@ public class YjsHandler extends BinaryWebSocketHandler {
      */
     private final Map<String, Set<WebSocketSession>> roomSession = new ConcurrentHashMap<>();
 
-    /**
-     * 房间历史数据
-     */
-    private final Map<String, List<byte[]>> roomHistory = new ConcurrentHashMap<>();
 
     @Resource
     private RoomSnapshotsMapper roomSnapshotsMapper;
@@ -103,7 +97,7 @@ public class YjsHandler extends BinaryWebSocketHandler {
         // 持久化，保存更新数据
         RoomUpdates roomUpdates = new RoomUpdates();
         roomUpdates.setUpdateData(payload);
-        roomUpdates.setRoomName(roomName);
+        roomUpdates.setRoomName(Long.valueOf(roomName));
         batchService.addUpdate(roomUpdates);
         // 广播，转发给同房间的其他的用户
         Set<WebSocketSession> webSocketSessions = roomSession.get(roomName);

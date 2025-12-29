@@ -2,12 +2,14 @@ package com.wfh.drawio.model.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
 import lombok.Data;
 
 /**
  * 菜单权限表
+ * @author fenghuanwang
  * @TableName sys_menu
  */
 @TableName(value ="sys_menu")
@@ -16,7 +18,7 @@ public class SysMenu {
     /**
      * 菜单ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -72,5 +74,6 @@ public class SysMenu {
     /**
      * 是否删除
      */
+    @TableLogic
     private Integer isDelete;
 }

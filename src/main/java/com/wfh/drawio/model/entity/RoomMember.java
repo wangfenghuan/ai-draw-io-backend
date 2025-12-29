@@ -8,42 +8,41 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 协同编辑快照表
+ * 
  * @author fenghuanwang
- * @TableName room_snapshots
+ * @TableName room_member
  */
-@TableName(value ="room_snapshots")
+@TableName(value ="room_member")
 @Data
-public class RoomSnapshots {
+public class RoomMember {
     /**
-     * 
+     * 房间成员表id
      */
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
-     * 房间/文件ID
+     * 成员id
      */
-    private Long roomName;
+    private Long userId;
 
     /**
-     * 该快照包含了截止到哪个update_id的数据
+     * 房间id
      */
-    private Long lastUpdateId;
+    private Long roomId;
+    /**
+     * 是否删除
+     */
+    @TableLogic
+    private Integer isDelete;
 
     /**
-     * 
+     * 创建时间
      */
     private Date createTime;
 
     /**
-     * 合并后的完整Yjs文档状态
+     * 更新时间
      */
-    private byte[] snapshotData;
-
-    /**
-     * 是否删除（0未删除，1删除）
-     */
-    @TableLogic
-    private Integer isDelete;
+    private Date updateTime;
 }

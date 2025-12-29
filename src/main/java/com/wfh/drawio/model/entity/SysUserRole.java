@@ -1,11 +1,13 @@
 package com.wfh.drawio.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 /**
  * 用户和角色关联表
+ * @author fenghuanwang
  * @TableName sys_user_role
  */
 @TableName(value ="sys_user_role")
@@ -20,11 +22,11 @@ public class SysUserRole {
     /**
      * 角色ID
      */
-    @TableId
     private Long roleId;
 
     /**
      * 是否删除
      */
+    @TableLogic
     private Integer isDelete;
 }
