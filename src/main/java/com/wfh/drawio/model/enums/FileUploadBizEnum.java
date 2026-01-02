@@ -14,7 +14,8 @@ import org.apache.commons.lang3.ObjectUtils;
 public enum FileUploadBizEnum {
 
     USER_AVATAR("用户头像", "user_avatar"),
-    DIAGRAM("图表", "diagram");
+    DIAGRAM_PNG("图表png", "png"),
+    DIAGRAM_SVG("图表svg", "svg");
 
     private final String text;
 

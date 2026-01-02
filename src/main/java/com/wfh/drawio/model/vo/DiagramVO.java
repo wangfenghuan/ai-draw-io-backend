@@ -37,6 +37,19 @@ public class DiagramVO implements Serializable {
     @Schema(description = "创建用户ID", example = "10001")
     private Long userId;
 
+
+    /**
+     * 图片url
+     */
+    @Schema(description = "图片URL", example = "https://example.com/image.png")
+    private String pictureUrl;
+
+    /**
+     * 矢量图url
+     */
+    @Schema(description = "矢量图URL", example = "https://example.com/image.svg")
+    private String svgUrl;
+
     /**
      * 创建时间
      */
@@ -49,7 +62,17 @@ public class DiagramVO implements Serializable {
     @Schema(description = "更新时间", example = "2024-01-01 10:00:00")
     private Date updateTime;
 
+    /**
+     * 图表描述
+     */
+    @Schema(description = "图表描述", example = "前后端分离架构")
+    private String description;
 
+    /**
+     * 图表代码
+     */
+    @Schema(description = "图表代码", example = "DIAGRAM_20240101_001")
+    private String diagramCode;
 
     /**
      * 封装类转对象

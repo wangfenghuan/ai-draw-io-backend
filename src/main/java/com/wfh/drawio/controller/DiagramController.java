@@ -18,6 +18,10 @@ import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.enums.FileUploadBizEnum;
 import com.wfh.drawio.model.vo.DiagramVO;
 import com.wfh.drawio.service.*;
+import com.wfh.drawio.service.StrategyContext;
+import com.wfh.drawio.service.SvgDownloadStrategy;
+import com.wfh.drawio.service.PngDownloadStrategy;
+import com.wfh.drawio.service.XmlDownloadStrategy;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -56,6 +60,15 @@ public class DiagramController {
 
     @Resource
     private RoomUpdatesService updatesService;
+
+    @Resource
+    private SvgDownloadStrategy svgDownloadStrategy;
+
+    @Resource
+    private PngDownloadStrategy pngDownloadStrategy;
+
+    @Resource
+    private XmlDownloadStrategy xmlDownloadStrategy;
 
     /**
      * 检查是否有上传权限，枪锁
@@ -100,7 +113,7 @@ public class DiagramController {
      */
     @PostMapping("/upload")
     @Operation(summary = "上传图表到minio")
-    private BaseResponse<String> uploadDiagram(@RequestPart("file") MultipartFile multipartFile, @RequestBody DiagramUploadRequest diagramUploadRequest, HttpServletRequest request){
+    public BaseResponse<String> uploadDiagram(@RequestPart("file") MultipartFile multipartFile, @RequestPart("diagramUploadRequest") DiagramUploadRequest diagramUploadRequest, HttpServletRequest request){
         String biz = diagramUploadRequest.getBiz();
         Long diagramId = diagramUploadRequest.getDiagramId();
         Long userId = diagramUploadRequest.getUserId();
@@ -126,9 +139,9 @@ public class DiagramController {
             // 更新到数据库
             Diagram diagram = new Diagram();
             diagram.setId(diagramId);
-            if (extension.equals("SVG")){
+            if ("svg".equalsIgnoreCase(extension)){
                 diagram.setSvgUrl(fileUrl);
-            } else if (extension.equals("PNG")) {
+            } else if ("png".equalsIgnoreCase(extension)) {
                 diagram.setPictureUrl(fileUrl);
             }
             diagramService.updateById(diagram);
@@ -149,35 +162,55 @@ public class DiagramController {
     @GetMapping("/stream-download")
     @Operation(summary = "流式代理下载接口， 根据type。有SVG，PNG和XML格式")
     public void downloadRemoteFile(@RequestParam(required = false) String fileName,
-                                   @RequestParam() String type,
-                                   @RequestParam() Long diagramId,
+                                   @RequestParam(required = true) String type,
+                                   @RequestParam(required = true) Long diagramId,
                                    HttpServletResponse response, HttpServletRequest request) {
 
-        User loginUser = userService.getLoginUser(request);
-        Diagram diagram = diagramService.getById(diagramId);
-        if (diagram == null){
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图表不存在");
+        // 设置跨域响应头
+        String origin = request.getHeader("Origin");
+        if (origin != null) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+            response.setHeader("Access-Control-Allow-Credentials", "true");
         }
-        if (!diagram.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)){
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        Long id = diagram.getId();
-        StrategyContext strategyContext = new StrategyContext();
-        switch (type){
-            case "SVG":
-                strategyContext.setDownloadStrategy(new SvgDownloadStrategy());
-                strategyContext.execDownload(id, fileName, response);
-                break;
-            case "PNG":
-                strategyContext.setDownloadStrategy(new PngDownloadStrategy());
-                strategyContext.execDownload(id, fileName, response);
-                break;
-            case "XML":
-                strategyContext.setDownloadStrategy(new XmlDownloadStrategy());
-                strategyContext.execDownload(id, fileName, response);
-                break;
-            default:
-                break;
+
+        try {
+            User loginUser = userService.getLoginUser(request);
+            Diagram diagram = diagramService.getById(diagramId);
+            if (diagram == null){
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图表不存在");
+            }
+            if (!diagram.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)){
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+            Long id = diagram.getId();
+            StrategyContext strategyContext = new StrategyContext();
+            switch (type){
+                case "SVG":
+                    strategyContext.setDownloadStrategy(svgDownloadStrategy);
+                    strategyContext.execDownload(id, fileName, response);
+                    break;
+                case "PNG":
+                    strategyContext.setDownloadStrategy(pngDownloadStrategy);
+                    strategyContext.execDownload(id, fileName, response);
+                    break;
+                case "XML":
+                    strategyContext.setDownloadStrategy(xmlDownloadStrategy);
+                    strategyContext.execDownload(id, fileName, response);
+                    break;
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            // 确保错误时也有跨域响应头
+            if (origin != null) {
+                response.setHeader("Access-Control-Allow-Origin", origin);
+                response.setHeader("Access-Control-Allow-Credentials", "true");
+            }
+            if (e instanceof BusinessException) {
+                response.setStatus(((BusinessException) e).getCode());
+            } else {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
         }
     }
 
@@ -383,6 +416,7 @@ public class DiagramController {
         }
         Diagram diagram = new Diagram();
         BeanUtils.copyProperties(diagramEditRequest, diagram);
+        diagram.setName(diagramEditRequest.getTitle());
         // 数据校验
         diagramService.validDiagram(diagram, false);
         User loginUser = userService.getLoginUser(request);

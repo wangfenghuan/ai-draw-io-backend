@@ -27,6 +27,12 @@ public class DiagramEditRequest implements Serializable {
     private String title;
 
     /**
+     * 图表描述
+     */
+    @Schema(description = "图表描述", example = "前后端分离架构")
+    private String description;
+
+    /**
      * 内容
      */
     @Schema(description = "图表代码", example = "DIAGRAM_20240101_001")

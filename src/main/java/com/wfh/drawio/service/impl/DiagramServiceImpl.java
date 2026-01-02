@@ -223,6 +223,8 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
         // 对象列表 => 封装对象列表
         List<DiagramVO> diagramVOList = diagramList.stream().map(DiagramVO::objToVo).collect(Collectors.toList());
         diagramVOPage.setRecords(diagramVOList);
+        diagramVOPage.setCurrent(diagramPage.getCurrent());
+        diagramVOPage.setSize(diagramPage.getSize());
         return diagramVOPage;
     }
 

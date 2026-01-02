@@ -41,6 +41,12 @@ public class Diagram {
     private String name;
 
     /**
+     * 图表描述
+     */
+    @Schema(description = "图表描述", example = "前后端分离架构")
+    private String description;
+
+    /**
      * 图片url
      */
     @Schema(description = "图片URL", example = "https://example.com/image.png")

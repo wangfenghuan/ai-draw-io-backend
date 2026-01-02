@@ -1,6 +1,5 @@
 package com.wfh.drawio.controller;
 
-import com.github.xiaoymin.knife4j.annotations.ApiOperationSupport;
 import com.wfh.drawio.ai.client.DrawClient;
 import com.wfh.drawio.ai.utils.DiagramContextUtil;
 import com.wfh.drawio.common.ErrorCode;
@@ -65,10 +64,7 @@ public class AIClientController {
     public SseEmitter doChatStream(@RequestBody CustomChatRequest request){
         String message = request.getMessage();
         String diagramId = request.getDiagramId();
-        String modelId = request.getModelId();
-        String baseUrl = request.getBaseUrl();
-        String apiKey = request.getApiKey();
-        if (StringUtils.isAnyEmpty(message, diagramId, modelId, baseUrl, apiKey)) {
+        if (StringUtils.isAnyEmpty(message, diagramId)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         return aiService.getSseEmitter(request, drawClient);
