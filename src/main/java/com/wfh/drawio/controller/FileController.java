@@ -66,7 +66,7 @@ public class FileController {
         String fileUrl = "";
         try {
             // 上传文件
-            fileUrl = minioManager.putObject(filepath, multipartFile.getInputStream(), multipartFile);
+            fileUrl = minioManager.putObject(filepath, multipartFile.getInputStream(), multipartFile, loginUser.getId());
             // 返回可访问地址
             return ResultUtils.success(fileUrl);
         } catch (Exception e) {

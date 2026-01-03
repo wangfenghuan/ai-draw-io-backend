@@ -134,7 +134,7 @@ public class DiagramController {
         String extension = FilenameUtils.getExtension(filename);
         try {
             // 上传文件
-            fileUrl = minioManager.putObject(filepath, multipartFile.getInputStream(), multipartFile);
+            fileUrl = minioManager.putObject(filepath, multipartFile.getInputStream(), multipartFile, loginUser.getId());
             // 根据文件不同类型插入到不同字段中
             // 更新到数据库
             Diagram diagram = new Diagram();
@@ -165,15 +165,6 @@ public class DiagramController {
                                    @RequestParam(required = true) String type,
                                    @RequestParam(required = true) Long diagramId,
                                    HttpServletResponse response, HttpServletRequest request) {
-
-        // 设置跨域响应头
-        String origin = request.getHeader("Origin");
-        if (origin != null) {
-            response.setHeader("Access-Control-Allow-Origin", origin);
-            response.setHeader("Access-Control-Allow-Credentials", "true");
-        }
-
-        try {
             User loginUser = userService.getLoginUser(request);
             Diagram diagram = diagramService.getById(diagramId);
             if (diagram == null){
@@ -200,18 +191,6 @@ public class DiagramController {
                 default:
                     break;
             }
-        } catch (Exception e) {
-            // 确保错误时也有跨域响应头
-            if (origin != null) {
-                response.setHeader("Access-Control-Allow-Origin", origin);
-                response.setHeader("Access-Control-Allow-Credentials", "true");
-            }
-            if (e instanceof BusinessException) {
-                response.setStatus(((BusinessException) e).getCode());
-            } else {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            }
-        }
     }
 
     /**

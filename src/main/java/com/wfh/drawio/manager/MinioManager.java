@@ -7,10 +7,13 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.errors.*;
 import jakarta.annotation.Resource;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriUtils;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @Title: MinioManager
@@ -28,7 +31,7 @@ public class MinioManager {
     @Resource
     private MinioClient minioClient;
 
-    public String putObject(String objectName, InputStream inputStream, MultipartFile file){
+    public String putObject(String objectName, InputStream inputStream, MultipartFile file, Long userId){
         try {
             minioClient.putObject(PutObjectArgs.builder()
                             .bucket(clientConfig.getBucketName())
@@ -39,6 +42,8 @@ public class MinioManager {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
         }
-        return clientConfig.getEndpoint() + "/" + clientConfig.getBucketName() + "/" + objectName;
+        String encodedPath = UriUtils.encodePath(objectName, StandardCharsets.UTF_8);
+        // 拼接最终 URL
+        return clientConfig.getEndpoint() + "/" + clientConfig.getBucketName() + encodedPath;
     }
 }
