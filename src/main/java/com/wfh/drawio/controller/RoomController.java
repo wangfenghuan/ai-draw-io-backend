@@ -1,5 +1,8 @@
 package com.wfh.drawio.controller;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wfh.drawio.annotation.AuthCheck;
 import com.wfh.drawio.common.BaseResponse;
@@ -52,17 +55,25 @@ public class RoomController {
     @Operation(summary = "创建房间")
     public BaseResponse<Long> addRoom(@RequestBody RoomAddRequest roomAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(roomAddRequest == null, ErrorCode.PARAMS_ERROR);
+        // 判断房间是否存在，不存在才创建
+        LambdaQueryWrapper<DiagramRoom> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(DiagramRoom::getDiagramId, roomAddRequest.getDiagramId());
+        DiagramRoom room = roomService.getOne(queryWrapper);
+        if (room == null){
+            DiagramRoom newRoom = new DiagramRoom();
+            BeanUtils.copyProperties(roomAddRequest, newRoom);
+            User loginUser = userService.getLoginUser(request);
+            newRoom.setOwerId(loginUser.getId());
 
-        DiagramRoom room = new DiagramRoom();
-        BeanUtils.copyProperties(roomAddRequest, room);
-        User loginUser = userService.getLoginUser(request);
-        room.setOwerId(loginUser.getId());
-        // 写入数据库
-        boolean result = roomService.save(room);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+            // 写入数据库
+            boolean result = roomService.save(newRoom);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+            long newRoomId = newRoom.getId();
+            return ResultUtils.success(newRoomId);
+        }
+        // 房间存在，就返回房间ID
         // 返回新写入的数据 id
-        long newRoomId = room.getId();
-        return ResultUtils.success(newRoomId);
+        return ResultUtils.success(room.getId());
     }
 
 

@@ -55,7 +55,7 @@ public class YjsHandler extends BinaryWebSocketHandler {
     @Override
     public void afterConnectionEstablished(@NotNull WebSocketSession session) throws Exception {
         String roomName = getRoomName(session);
-        String userId = (String) session.getAttributes().get("userId");
+        String userId = String.valueOf(session.getAttributes().get("userId"));
         // todo 校验用户权限
         // 加入房间管理
         roomSession.computeIfAbsent(roomName, k-> new CopyOnWriteArraySet<>()).add(session);
@@ -93,7 +93,7 @@ public class YjsHandler extends BinaryWebSocketHandler {
     protected void handleBinaryMessage(@NotNull WebSocketSession session, BinaryMessage message) throws Exception {
         String roomName = getRoomName(session);
         byte[] payload = message.getPayload().array();
-
+        log.info("收到消息，房间: {}, 长度: {}, 来自: {}", roomName, payload.length, session.getId());
         // 持久化，保存更新数据
         RoomUpdates roomUpdates = new RoomUpdates();
         roomUpdates.setUpdateData(payload);
@@ -101,10 +101,13 @@ public class YjsHandler extends BinaryWebSocketHandler {
         batchService.addUpdate(roomUpdates);
         // 广播，转发给同房间的其他的用户
         Set<WebSocketSession> webSocketSessions = roomSession.get(roomName);
+
         if (webSocketSessions != null){
+            log.info("准备广播给房间: {} 的其他 {} 个用户", roomName, webSocketSessions.size() - 1);
             for (WebSocketSession webSocketSession : webSocketSessions) {
                 // 排除自己，只发给别人
                 if (webSocketSession.isOpen() && !webSocketSession.getId().equals(session.getId())){
+                    log.info("已广播给: {}", webSocketSession.getId());
                     // 发送消息
                     webSocketSession.sendMessage(new BinaryMessage(payload));
                 }
