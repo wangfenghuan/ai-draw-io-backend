@@ -33,6 +33,12 @@ public class DiagramEditRequest implements Serializable {
     private String description;
 
     /**
+     * 空间ID
+     */
+    @Schema(defaultValue = "空间ID")
+    private Long spaceId;
+
+    /**
      * 内容
      */
     @Schema(description = "图表代码", example = "DIAGRAM_20240101_001")

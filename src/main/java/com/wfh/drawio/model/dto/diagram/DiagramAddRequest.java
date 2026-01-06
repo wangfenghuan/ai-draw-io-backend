@@ -27,6 +27,13 @@ public class DiagramAddRequest implements Serializable {
     private String diagramCode;
 
     /**
+     * 空间id
+     */
+    @Schema(description = "空间id", example = "1111111")
+    private Long spaceId;
+
+
+    /**
      * 图片url
      */
     @Schema(description = "图片URL", example = "https://example.com/image.png")

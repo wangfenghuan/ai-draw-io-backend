@@ -12,10 +12,17 @@
             <result property="updateTime" column="updateTime" />
             <result property="isDelete" column="isDelete" />
             <result property="name" column="name" />
+        <result property="pictureUrl" column="pictureUrl" />
+        <result property="spaceId" column="spaceId" />
+        <result property="svgUrl" column="svgUrl" />
+        <result property="svgSize" column="svgSize" />
+        <result property="pngSize" column="pngSize" />
+        <result property="picSize" column="picSize" />
+        <result property="description" column="description" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,userId,diagramCode,createTime,updateTime,isDelete,
+        id,userId,diagramCode,createTime,updateTime,isDelete,pictureUrl,spaceId,svgUrl,svgSize,pngSize,picSize,description,
         name
     </sql>
 </mapper>

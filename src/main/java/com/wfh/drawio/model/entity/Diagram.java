@@ -53,10 +53,34 @@ public class Diagram {
     private String pictureUrl;
 
     /**
+     * 空间id
+     */
+    @Schema(description = "空间id", example = "1111111")
+    private Long spaceId;
+
+    /**
      * 矢量图url
      */
     @Schema(description = "矢量图URL", example = "https://example.com/image.svg")
     private String svgUrl;
+
+    /**
+     * SVG文件大小（字节）
+     */
+    @Schema(description = "SVG文件大小（字节）", example = "51200")
+    private Long svgSize;
+
+    /**
+     * PNG文件大小（字节）
+     */
+    @Schema(description = "PNG文件大小（字节）", example = "51200")
+    private Long pngSize;
+
+    /**
+     * 图片总大小（字节）= svgSize + pngSize
+     */
+    @Schema(description = "图片总大小（字节）", example = "102400")
+    private Long picSize;
 
     /**
      * 创建时间

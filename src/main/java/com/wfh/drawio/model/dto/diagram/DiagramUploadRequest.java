@@ -25,4 +25,7 @@ public class DiagramUploadRequest extends UploadFileRequest implements Serializa
     @Schema(description = "用户ID", example = "10001")
     private Long userId;
 
+    @Schema(description = "空间ID", example = "10001")
+    private Long spaceId;
+
 }

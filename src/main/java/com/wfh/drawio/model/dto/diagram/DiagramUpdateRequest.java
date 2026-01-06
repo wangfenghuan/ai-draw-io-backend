@@ -24,7 +24,7 @@ public class DiagramUpdateRequest implements Serializable {
      * 标题
      */
     @Schema(description = "图表标题", example = "系统架构图")
-    private String title;
+    private String name;
 
     /**
      * 内容
@@ -37,6 +37,18 @@ public class DiagramUpdateRequest implements Serializable {
      */
     @Schema(description = "图片URL", example = "https://example.com/image.png")
     private String pictureUrl;
+
+    /**
+     * 图表描述
+     */
+    @Schema(description = "图表描述", example = "前后端分离架构")
+    private String description;
+
+    /**
+     * 空间id
+     */
+    @Schema(description = "空间id", example = "12121212")
+    private Long spaceId;
 
 
     private static final long serialVersionUID = 1L;

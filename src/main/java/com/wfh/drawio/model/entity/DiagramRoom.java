@@ -44,16 +44,25 @@ public class DiagramRoom {
      * 创建者id
      */
     @Schema(description = "创建者ID", example = "10001")
-    private Long owerId;
+    private Long ownerId;
 
     /**
      * 加密后的图表数据
      */
+    @Schema(description = "加密后的图表数据")
     private byte[] encryptedData;
+
+
+    /**
+     * 访问地址
+     */
+    @Schema(description = "访问地址")
+    private String roomUrl;
 
     /**
      * 加密向量
      */
+    @Schema(description = "加密向量")
     private String iv;
 
     /**

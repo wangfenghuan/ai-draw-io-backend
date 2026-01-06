@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.wfh.drawio.model.entity.DiagramRoom;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -17,6 +18,7 @@ import java.util.Date;
  * @Date 2025/12/28 11:21
  * @description: 房间视图对象
  */
+@Data
 @Schema(name = "RoomVO", description = "房间视图对象")
 public class RoomVO implements Serializable {
 
@@ -42,7 +44,7 @@ public class RoomVO implements Serializable {
      * 创建者id
      */
     @Schema(description = "创建者ID", example = "10001")
-    private Long owerId;
+    private Long ownerId;
 
     /**
      * 0代表公开，1代表不公开
@@ -61,6 +63,12 @@ public class RoomVO implements Serializable {
      */
     @Schema(description = "创建时间", example = "2024-01-01 10:00:00")
     private Date createTime;
+
+    /**
+     * 访问地址
+     */
+    @Schema(description = "访问地址")
+    private String roomUrl;
 
     /**
      * 更新时间

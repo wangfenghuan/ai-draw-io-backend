@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wfh.drawio.common.ErrorCode;
+import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.model.dto.room.RoomQueryRequest;
 import com.wfh.drawio.model.entity.DiagramRoom;
@@ -70,15 +71,15 @@ public class DiagramRoomServiceImpl extends ServiceImpl<DiagramRoomMapper, Diagr
         ThrowUtils.throwIf(room == null, ErrorCode.PARAMS_ERROR);
         String name = room.getRoomName();
         Long roomId = room.getId();
-        Long userId = room.getOwerId();
+        Long userId = room.getOwnerId();
         // 创建数据时，参数不能为空
         if (b) {
             ThrowUtils.throwIf(StringUtils.isBlank(name), ErrorCode.PARAMS_ERROR);
             ThrowUtils.throwIf(ObjectUtils.isEmpty(userId), ErrorCode.PARAMS_ERROR);
         }
         // 修改数据时，有参数则校验
-        if (StringUtils.isNotBlank(name) || ObjectUtils.isNotEmpty(roomId)) {
-            ThrowUtils.throwIf(name.length() > 80, ErrorCode.PARAMS_ERROR, "标题过长");
+        if (ObjectUtils.isEmpty(roomId)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
     }
 

@@ -11,10 +11,7 @@ import com.wfh.drawio.constant.UserConstant;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.mapper.DiagramRoomMapper;
-import com.wfh.drawio.model.dto.room.RoomAddRequest;
-import com.wfh.drawio.model.dto.room.RoomEditRequest;
-import com.wfh.drawio.model.dto.room.RoomQueryRequest;
-import com.wfh.drawio.model.dto.room.RoomUpdateRequest;
+import com.wfh.drawio.model.dto.room.*;
 import com.wfh.drawio.model.entity.DiagramRoom;
 import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.RoomVO;
@@ -49,7 +46,7 @@ public class RoomController {
     private DiagramRoomMapper roomMapper;
 
     /**
-     * 保存图表数据
+     * 保存图表数据(协同编辑用)
      * @param roomId
      * @param encryptedData
      */
@@ -83,7 +80,7 @@ public class RoomController {
             DiagramRoom newRoom = new DiagramRoom();
             BeanUtils.copyProperties(roomAddRequest, newRoom);
             User loginUser = userService.getLoginUser(request);
-            newRoom.setOwerId(loginUser.getId());
+            newRoom.setOwnerId(loginUser.getId());
 
             // 写入数据库
             boolean result = roomService.save(newRoom);
@@ -116,7 +113,7 @@ public class RoomController {
         DiagramRoom oldDiagramRoom = roomService.getById(id);
         ThrowUtils.throwIf(oldDiagramRoom == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可删除
-        if (!oldDiagramRoom.getOwerId().equals(user.getId()) && !userService.isAdmin(request)) {
+        if (!oldDiagramRoom.getOwnerId().equals(user.getId()) && !userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         // 操作数据库
@@ -258,9 +255,35 @@ public class RoomController {
         DiagramRoom oldDiagramRoom = roomService.getById(id);
         ThrowUtils.throwIf(oldDiagramRoom == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可编辑
-        if (!oldDiagramRoom.getOwerId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+        if (!oldDiagramRoom.getOwnerId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+        // 操作数据库
+        boolean result = roomService.updateById(room);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 修改房间访问地址
+     * @param roomUrlEditRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/updateRoomUrl")
+    @Operation(summary = "修改房间访问地址")
+    public BaseResponse<Boolean> updateRoomUrl(@RequestBody RoomUrlEditRequest roomUrlEditRequest, HttpServletRequest request) {
+        if (roomUrlEditRequest == null || roomUrlEditRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        DiagramRoom room = new DiagramRoom();
+        BeanUtils.copyProperties(roomUrlEditRequest, room);
+        // 数据校验
+        roomService.validRoom(room, false);
+        // 判断是否存在
+        long id = roomUrlEditRequest.getId();
+        DiagramRoom oldDiagramRoom = roomService.getById(id);
+        ThrowUtils.throwIf(oldDiagramRoom == null, ErrorCode.NOT_FOUND_ERROR);
         // 操作数据库
         boolean result = roomService.updateById(room);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);

@@ -40,6 +40,13 @@ public class RoomEditRequest implements Serializable {
     @Schema(description = "是否关闭（0开启，1关闭）", example = "0")
     private Integer isOpen;
 
+
+    /**
+     * 访问地址
+     */
+    @Schema(description = "访问地址")
+    private String roomUrl;
+
     /**
      * 访问密码
      */

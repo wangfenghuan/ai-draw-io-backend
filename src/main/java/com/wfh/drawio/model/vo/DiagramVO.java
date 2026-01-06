@@ -51,6 +51,12 @@ public class DiagramVO implements Serializable {
     private String svgUrl;
 
     /**
+     * 图片url
+     */
+    @Schema(description = "空间id", example = "1111111")
+    private Long spaceId;
+
+    /**
      * 创建时间
      */
     @Schema(description = "创建时间", example = "2024-01-01 10:00:00")

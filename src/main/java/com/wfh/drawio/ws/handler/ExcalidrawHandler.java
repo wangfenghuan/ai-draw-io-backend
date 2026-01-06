@@ -1,7 +1,6 @@
 package com.wfh.drawio.ws.handler;
 
 import com.wfh.drawio.mapper.DiagramRoomMapper;
-import com.wfh.drawio.model.entity.CooperationRoom;
 import com.wfh.drawio.model.entity.DiagramRoom;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +56,7 @@ public class ExcalidrawHandler extends BinaryWebSocketHandler {
      */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        String userId = String.valueOf(session.getAttributes().get("userId"));
         String roomId = getRoomId(session);
         roomSessions.computeIfAbsent(roomId, k -> new CopyOnWriteArraySet<>()).add(session);
 

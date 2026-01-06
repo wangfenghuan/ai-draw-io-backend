@@ -7,11 +7,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
+import com.wfh.drawio.model.dto.diagram.DiagramAddRequest;
 import com.wfh.drawio.model.dto.diagram.DiagramQueryRequest;
 import com.wfh.drawio.model.entity.Diagram;
+import com.wfh.drawio.model.entity.Space;
+import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.mapper.DiagramMapper;
 import com.wfh.drawio.model.vo.DiagramVO;
 import com.wfh.drawio.service.DiagramService;
+import com.wfh.drawio.service.SpaceService;
 import com.wfh.drawio.service.UserService;
 
 import jakarta.annotation.Resource;
@@ -22,7 +26,9 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
@@ -45,6 +51,15 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
 
     @Resource
     private RedissonClient redissonClient;
+
+    @Resource
+    private SpaceService spaceService;
+
+    @Resource
+    private UserService userService;
+
+    @Resource
+    private TransactionTemplate transactionTemplate;
 
     @Override
     public boolean tryAcquireLock(String roomName){
@@ -179,7 +194,9 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
         Long id = diagramQueryRequest.getId();
         String name = diagramQueryRequest.getTitle();
         String searchText = diagramQueryRequest.getSearchText();
+        Long spaceId = diagramQueryRequest.getSpaceId();
         Long userId = diagramQueryRequest.getUserId();
+        boolean nullSpaceId = diagramQueryRequest.isNullSpaceId();
         // 从多字段中搜索
         if (StringUtils.isNotBlank(searchText)) {
             // 需要拼接查询条件
@@ -189,6 +206,8 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
         queryWrapper.like(StringUtils.isNotBlank(name), "name", name);
         // 精确查询
         queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(spaceId), "spaceId", spaceId);
+        queryWrapper.isNull(nullSpaceId, "spaceId");
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         return queryWrapper;
     }
@@ -226,6 +245,191 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
         diagramVOPage.setCurrent(diagramPage.getCurrent());
         diagramVOPage.setSize(diagramPage.getSize());
         return diagramVOPage;
+    }
+
+    /**
+     * 上传图表文件并更新空间额度（带事务）
+     * 在事务内进行额度校验，确保并发安全
+     * picSize = svgSize + pngSize
+     */
+    @Override
+    public void uploadDiagramWithQuota(Long diagramId, Long spaceId, String fileUrl, Long fileSize, String extension, User loginUser) {
+        transactionTemplate.execute(status -> {
+            // 获取图表信息
+            Diagram diagram = this.getById(diagramId);
+            ThrowUtils.throwIf(diagram == null, ErrorCode.NOT_FOUND_ERROR, "图表不存在");
+
+            // 获取旧的文件大小
+            Long oldSvgSize = diagram.getSvgSize() != null ? diagram.getSvgSize() : 0L;
+            Long oldPngSize = diagram.getPngSize() != null ? diagram.getPngSize() : 0L;
+            Long oldPicSize = oldSvgSize + oldPngSize;
+
+            // 判断文件类型
+            boolean isSvg = "svg".equalsIgnoreCase(extension);
+            boolean isPng = "png".equalsIgnoreCase(extension);
+
+            // 计算新的文件大小
+            Long newSvgSize = oldSvgSize;
+            Long newPngSize = oldPngSize;
+
+            if (isSvg) {
+                newSvgSize = fileSize;
+            } else if (isPng) {
+                newPngSize = fileSize;
+            } else {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "不支持的文件类型");
+            }
+
+            Long newPicSize = newSvgSize + newPngSize;
+            long sizeDelta = newPicSize - oldPicSize;
+
+            // 如果有空间ID，需要校验额度并更新
+            if (spaceId != null) {
+                // 在事务内重新查询空间，获取最新数据（加锁）
+                Space space = spaceService.getById(spaceId);
+                ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+
+                // 权限校验
+                if (!loginUser.getId().equals(space.getUserId())) {
+                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+                }
+
+                // 额度校验（在事务内进行，确保并发安全）
+                if (space.getTotalCount() >= space.getMaxCount()) {
+                    throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间条数不足");
+                }
+                if (space.getTotalSize() + sizeDelta > space.getMaxSize()) {
+                    throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间大小不足");
+                }
+
+                // 更新图表信息
+                Diagram updateDiagram = new Diagram();
+                updateDiagram.setId(diagramId);
+                updateDiagram.setSvgSize(newSvgSize);
+                updateDiagram.setPngSize(newPngSize);
+                updateDiagram.setPicSize(newPicSize);
+                if (isSvg) {
+                    updateDiagram.setSvgUrl(fileUrl);
+                } else if (isPng) {
+                    updateDiagram.setPictureUrl(fileUrl);
+                }
+                boolean result = this.updateById(updateDiagram);
+                ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
+
+                // 更新空间额度
+                boolean update = spaceService.lambdaUpdate()
+                        .eq(Space::getId, spaceId)
+                        .setSql("totalSize = totalSize + " + sizeDelta)
+                        .setSql("totalCount = totalCount + 1")
+                        .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+            } else {
+                // 没有空间ID，只更新图表信息
+                Diagram updateDiagram = new Diagram();
+                updateDiagram.setId(diagramId);
+                updateDiagram.setSvgSize(newSvgSize);
+                updateDiagram.setPngSize(newPngSize);
+                updateDiagram.setPicSize(newPicSize);
+                if (isSvg) {
+                    updateDiagram.setSvgUrl(fileUrl);
+                } else if (isPng) {
+                    updateDiagram.setPictureUrl(fileUrl);
+                }
+                boolean result = this.updateById(updateDiagram);
+                ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
+            }
+            return true;
+        });
+    }
+
+    /**
+     * 删除图表并释放额度（带事务）
+     */
+    @Override
+    public void deleteDiagramWithQuota(Long id) {
+        // 获取图表信息（在事务外）
+        Diagram oldDiagram = this.getById(id);
+        ThrowUtils.throwIf(oldDiagram == null, ErrorCode.NOT_FOUND_ERROR);
+
+        transactionTemplate.execute(status -> {
+            // 删除图表
+            boolean result = this.removeById(id);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+            // 释放额度
+            Long spaceId = oldDiagram.getSpaceId();
+            if (spaceId != null) {
+                // 使用 svgSize + pngSize 作为总大小
+                Long svgSize = oldDiagram.getSvgSize() != null ? oldDiagram.getSvgSize() : 0L;
+                Long pngSize = oldDiagram.getPngSize() != null ? oldDiagram.getPngSize() : 0L;
+                Long picSize = svgSize + pngSize;
+
+                if (picSize > 0) {
+                    boolean update = spaceService.lambdaUpdate()
+                            .eq(Space::getId, spaceId)
+                            .setSql("totalSize = totalSize - " + picSize)
+                            .setSql("totalCount = totalCount - 1")
+                            .update();
+                    ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+                } else {
+                    // 如果picSize为0，只减少count
+                    boolean update = spaceService.lambdaUpdate()
+                            .eq(Space::getId, spaceId)
+                            .setSql("totalCount = totalCount - 1")
+                            .update();
+                    ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+                }
+            }
+            return true;
+        });
+    }
+
+    /**
+     * 创建图表并更新空间额度（带事务）
+     */
+    @Override
+    public Long addDiagramWithQuota(DiagramAddRequest diagramAddRequest, User loginUser) {
+        Diagram diagram = new Diagram();
+        Long spaceId = diagramAddRequest.getSpaceId();
+        BeanUtils.copyProperties(diagramAddRequest, diagram);
+        diagram.setUserId(loginUser.getId());
+
+        // 数据校验
+        this.validDiagram(diagram, true);
+
+        return transactionTemplate.execute(status -> {
+            // 如果有空间ID，需要校验额度并更新
+            if (spaceId != null) {
+                Space space = spaceService.getById(spaceId);
+                ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+
+                // 权限校验
+                if (!space.getUserId().equals(loginUser.getId())) {
+                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限");
+                }
+
+                // 额度校验
+                if (space.getTotalCount() >= space.getMaxCount()) {
+                    throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间条数不足");
+                }
+
+                // 保存图表
+                boolean save = this.save(diagram);
+                ThrowUtils.throwIf(!save, ErrorCode.OPERATION_ERROR);
+
+                // 更新空间额度（只增加count，因为此时还没有上传文件）
+                boolean update = spaceService.lambdaUpdate()
+                        .eq(Space::getId, spaceId)
+                        .setSql("totalCount = totalCount + 1")
+                        .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+            } else {
+                // 没有空间ID，直接保存
+                boolean save = this.save(diagram);
+                ThrowUtils.throwIf(!save, ErrorCode.OPERATION_ERROR);
+            }
+            return diagram.getId();
+        });
     }
 
 }

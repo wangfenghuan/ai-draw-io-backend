@@ -8,16 +8,19 @@
             <id property="id" column="id" />
             <result property="roomName" column="roomName" />
             <result property="diagramId" column="diagramId" />
-            <result property="owerId" column="owerId" />
+            <result property="ownerId" column="owerId" />
             <result property="isPublic" column="isPublic" />
             <result property="isDelete" column="isDelete" />
             <result property="createTime" column="createTime" />
-            <result property="updateTIme" column="updateTIme" />
+            <result property="updateTime" column="updateTIme" />
             <result property="accessKey" column="accessKey" />
+        <result property="encryptedData" column="encryptedData" />
+        <result property="roomUrl" column="roomUrl" />
+        <result property="iv" column="iv" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,roomName,diagramId,owerId,isPublic,isDelete,
+        id,roomName,diagramId,owerId,isPublic,isDelete,encryptedData,roomUrl,iv,
         createTime,updateTIme,accessKey
     </sql>
 </mapper>

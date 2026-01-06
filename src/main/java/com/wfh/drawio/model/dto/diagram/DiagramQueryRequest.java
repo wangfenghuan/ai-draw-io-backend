@@ -44,6 +44,20 @@ public class DiagramQueryRequest extends PageRequest implements Serializable {
 
 
     /**
+     * 空间 id
+     */
+    @Schema(description = "空间 id")
+    private Long spaceId;
+
+    /**
+     * 是否只查询 spaceId 为 null 的数据
+     */
+    @Schema(description = "是否只查询 spaceId 为 null 的数据")
+    private boolean nullSpaceId;
+
+
+
+    /**
      * 创建用户 id
      */
     @Schema(description = "创建用户ID", example = "10001")
