@@ -78,4 +78,16 @@ public class RoomQueryRequest extends PageRequest implements Serializable {
     @Schema(description = "是否关闭（0开启，1关闭）", example = "0")
     private Integer isOpen;
 
+    /**
+     * 空间id
+     */
+    @Schema(description = "空间ID", example = "1111111")
+    private Long spaceId;
+
+    /**
+     * 是否查询空空间id的记录
+     */
+    @Schema(description = "是否查询空空间id的记录", example = "false")
+    private Boolean nullSpaceId;
+
 }

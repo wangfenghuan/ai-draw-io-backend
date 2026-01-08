@@ -67,7 +67,7 @@ public class SpaceVO implements Serializable {
     /**
      * 创建用户信息
      */
-    private UserVO user;
+    private UserVO userVO;
 
     private static final long serialVersionUID = 1L;
 

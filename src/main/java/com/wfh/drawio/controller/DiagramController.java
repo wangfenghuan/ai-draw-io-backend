@@ -183,9 +183,9 @@ public class DiagramController {
 
         // 构建文件路径
         if (spaceId != null){
-            filepath = String.format("/space/%s/%s/%s/%s", spaceId, fileUploadBizEnum.getValue(), loginUser.getId(), filename);
+            filepath = String.format("/space/%s/%s/%s/%s/%s", spaceId, fileUploadBizEnum.getValue(), loginUser.getId(), diagramId, filename);
         }else {
-            filepath = String.format("/public/%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), filename);
+            filepath = String.format("/public/%s/%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), diagramId, filename);
         }
 
         String fileUrl = "";

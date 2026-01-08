@@ -82,6 +82,18 @@ public class RoomVO implements Serializable {
     @Schema(description = "是否关闭（0开启，1关闭）", example = "0")
     private Integer isOpen;
 
+    /**
+     * 创建用户信息
+     */
+    @Schema(description = "创建用户信息")
+    private UserVO userVO;
+
+    /**
+     * 空间id
+     */
+    @Schema(description = "空间id", example = "1111111")
+    private Long spaceId;
+
     public static RoomVO objToVo(DiagramRoom room) {
         return BeanUtil.copyProperties(room, RoomVO.class);
     }

@@ -5,15 +5,18 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wfh.drawio.common.ErrorCode;
+import com.wfh.drawio.constant.UserConstant;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.model.dto.space.SpaceAddReqeust;
 import com.wfh.drawio.model.dto.space.SpaceQueryRequest;
 import com.wfh.drawio.model.entity.Diagram;
+import com.wfh.drawio.model.entity.DiagramRoom;
 import com.wfh.drawio.model.entity.Space;
 import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.enums.SpaceLevelEnum;
 import com.wfh.drawio.model.vo.SpaceVO;
+import com.wfh.drawio.model.vo.UserVO;
 import com.wfh.drawio.service.DiagramService;
 import com.wfh.drawio.service.SpaceService;
 import com.wfh.drawio.mapper.SpaceMapper;
@@ -69,12 +72,13 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         if (SpaceLevelEnum.COMMON.getValue() != spaceAddReqeust.getSpaceLevel() && !userService.isAdmin(loginUser)){
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限创建指定级别的团队空间");
         }
+        boolean isAdmin= loginUser.getUserRole().equals(UserConstant.ADMIN_ROLE);
         // 针对用户进行加锁
         String lock = String.valueOf(id).intern();
         synchronized (lock){
             Long newSpaceId = transactionTemplate.execute(status -> {
                 boolean exists = this.lambdaQuery().eq(Space::getUserId, id).exists();
-                ThrowUtils.throwIf(exists, ErrorCode.OPERATION_ERROR, "每一个用户只能有一个私有的空间");
+                ThrowUtils.throwIf(exists && !isAdmin, ErrorCode.OPERATION_ERROR, "每一个用户只能有一个私有的空间");
                 // 写入数据库
                 boolean save = this.save(space);
                 ThrowUtils.throwIf(!save, ErrorCode.OPERATION_ERROR);
@@ -156,6 +160,22 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         }
     }
 
+    @Override
+    public void checkRoomAuth(User loginUser, DiagramRoom room) {
+        Long spaceId = room.getSpaceId();
+        if (spaceId == null) {
+            // 公共房间，仅本人或管理员可操作
+            if (!room.getOwnerId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+        } else {
+            // 私有空间，仅空间管理员可操作
+            if (!room.getOwnerId().equals(loginUser.getId())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+        }
+    }
+
     /**
      * 删除空间并关联删除空间内的图表（带事务）
      */
@@ -217,7 +237,15 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     public SpaceVO getSpaceVO(Space space, HttpServletRequest request) {
         // 对象转封装类
         SpaceVO spaceVO = SpaceVO.objToVo(space);
-        // 可以在这里补充其他信息，比如用户信息等
+        // 设置创建用户信息
+        if (space.getUserId() != null) {
+            User user = userService.getById(space.getUserId());
+            if (user != null) {
+                UserVO userVO = new UserVO();
+                BeanUtils.copyProperties(user, userVO);
+                spaceVO.setUserVO(userVO);
+            }
+        }
         return spaceVO;
     }
 

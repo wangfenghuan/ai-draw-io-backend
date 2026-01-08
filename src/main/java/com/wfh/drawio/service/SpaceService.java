@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.wfh.drawio.model.dto.space.SpaceAddReqeust;
 import com.wfh.drawio.model.dto.space.SpaceQueryRequest;
 import com.wfh.drawio.model.entity.Diagram;
+import com.wfh.drawio.model.entity.DiagramRoom;
 import com.wfh.drawio.model.entity.Space;
 import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.SpaceVO;
@@ -40,6 +41,13 @@ public interface SpaceService extends IService<Space> {
     void fillSpaceBySpaceLevel(Space space);
 
     void checkDiagramAuth(User loginUser, Diagram diagram);
+
+    /**
+     * 校验房间的空间权限
+     * @param loginUser 登录用户
+     * @param room 房间
+     */
+    void checkRoomAuth(User loginUser, DiagramRoom room);
 
     /**
      * 删除空间并关联删除空间内的图表（带事务）

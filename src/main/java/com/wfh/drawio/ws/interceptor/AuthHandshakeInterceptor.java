@@ -1,6 +1,7 @@
 package com.wfh.drawio.ws.interceptor;
 
 import com.wfh.drawio.model.entity.User;
+import com.wfh.drawio.service.DiagramService;
 import com.wfh.drawio.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,6 +31,7 @@ public class AuthHandshakeInterceptor implements HandshakeInterceptor {
     @Override
     public boolean beforeHandshake(@NotNull ServerHttpRequest request, @NotNull ServerHttpResponse response, @NotNull WebSocketHandler wsHandler, @NotNull Map<String, Object> attributes) throws Exception {
         HttpServletRequest servletRequest = ((ServletServerHttpRequest) request).getServletRequest();
+        // 校验用户是否登录和房间是否有权限
         User loginUser = userService.getLoginUser(servletRequest);
         if (loginUser == null){
             return false;

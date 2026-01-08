@@ -102,5 +102,11 @@ public class DiagramRoom {
     @Schema(description = "访问密码", example = "123456")
     private String accessKey;
 
+    /**
+     * 空间id
+     */
+    @Schema(description = "空间ID", example = "1111111")
+    private Long spaceId;
+
 
 }

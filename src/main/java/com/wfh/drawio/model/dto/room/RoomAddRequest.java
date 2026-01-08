@@ -28,4 +28,10 @@ public class RoomAddRequest implements Serializable {
     @Schema(description = "图表ID", example = "20001")
     private Long diagramId;
 
+    /**
+     * 空间id
+     */
+    @Schema(description = "空间ID", example = "1111111")
+    private Long spaceId;
+
 }

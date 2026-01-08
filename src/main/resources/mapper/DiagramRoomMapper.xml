@@ -17,10 +17,11 @@
         <result property="encryptedData" column="encryptedData" />
         <result property="roomUrl" column="roomUrl" />
         <result property="iv" column="iv" />
+        <result property="spaceId" column="spaceId" />
     </resultMap>
 
     <sql id="Base_Column_List">
         id,roomName,diagramId,owerId,isPublic,isDelete,encryptedData,roomUrl,iv,
-        createTime,updateTIme,accessKey
+        createTime,updateTIme,accessKey,spaceId
     </sql>
 </mapper>

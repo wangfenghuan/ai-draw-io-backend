@@ -14,6 +14,7 @@ import com.wfh.drawio.model.entity.Space;
 import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.mapper.DiagramMapper;
 import com.wfh.drawio.model.vo.DiagramVO;
+import com.wfh.drawio.model.vo.UserVO;
 import com.wfh.drawio.service.DiagramService;
 import com.wfh.drawio.service.SpaceService;
 import com.wfh.drawio.service.UserService;
@@ -222,7 +223,17 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
     @Override
     public DiagramVO getDiagramVO(Diagram diagram, HttpServletRequest request) {
         // 对象转封装类
-        return DiagramVO.objToVo(diagram);
+        DiagramVO diagramVO = DiagramVO.objToVo(diagram);
+        // 设置创建用户信息
+        if (diagram.getUserId() != null) {
+            User user = userService.getById(diagram.getUserId());
+            if (user != null) {
+                UserVO userVO = new UserVO();
+                BeanUtils.copyProperties(user, userVO);
+                diagramVO.setUserVO(userVO);
+            }
+        }
+        return diagramVO;
     }
 
     /**
@@ -240,7 +251,19 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
             return diagramVOPage;
         }
         // 对象列表 => 封装对象列表
-        List<DiagramVO> diagramVOList = diagramList.stream().map(DiagramVO::objToVo).collect(Collectors.toList());
+        List<DiagramVO> diagramVOList = diagramList.stream().map(diagram -> {
+            DiagramVO diagramVO = DiagramVO.objToVo(diagram);
+            // 设置创建用户信息
+            if (diagram.getUserId() != null) {
+                User user = userService.getById(diagram.getUserId());
+                if (user != null) {
+                    UserVO userVO = new UserVO();
+                    BeanUtils.copyProperties(user, userVO);
+                    diagramVO.setUserVO(userVO);
+                }
+            }
+            return diagramVO;
+        }).collect(Collectors.toList());
         diagramVOPage.setRecords(diagramVOList);
         diagramVOPage.setCurrent(diagramPage.getCurrent());
         diagramVOPage.setSize(diagramPage.getSize());

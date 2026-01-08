@@ -10,12 +10,17 @@ import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.model.dto.room.RoomQueryRequest;
 import com.wfh.drawio.model.entity.DiagramRoom;
+import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.RoomVO;
+import com.wfh.drawio.model.vo.UserVO;
 import com.wfh.drawio.service.DiagramRoomService;
+import com.wfh.drawio.service.UserService;
 import com.wfh.drawio.mapper.DiagramRoomMapper;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,6 +35,9 @@ import java.util.stream.Collectors;
 public class DiagramRoomServiceImpl extends ServiceImpl<DiagramRoomMapper, DiagramRoom>
     implements DiagramRoomService{
 
+    @Resource
+    private UserService userService;
+
     @Override
     public Wrapper<DiagramRoom> getQueryWrapper(RoomQueryRequest roomQueryRequest) {
         QueryWrapper<DiagramRoom> queryWrapper = new QueryWrapper<>();
@@ -40,6 +48,8 @@ public class DiagramRoomServiceImpl extends ServiceImpl<DiagramRoomMapper, Diagr
         String name = roomQueryRequest.getRoomName();
         String searchText = roomQueryRequest.getSearchText();
         Long userId = roomQueryRequest.getOwerId();
+        Long spaceId = roomQueryRequest.getSpaceId();
+        Boolean nullSpaceId = roomQueryRequest.getNullSpaceId();
         // 从多字段中搜索
         if (StringUtils.isNotBlank(searchText)) {
             // 需要拼接查询条件
@@ -50,6 +60,8 @@ public class DiagramRoomServiceImpl extends ServiceImpl<DiagramRoomMapper, Diagr
         // 精确查询
         queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "ownerId", userId);
+        queryWrapper.eq(ObjectUtils.isNotEmpty(spaceId), "spaceId", spaceId);
+        queryWrapper.isNull(nullSpaceId != null && nullSpaceId, "spaceId");
         return queryWrapper;
     }
 
@@ -61,7 +73,19 @@ public class DiagramRoomServiceImpl extends ServiceImpl<DiagramRoomMapper, Diagr
             return diagramVOPage;
         }
         // 对象列表 => 封装对象列表
-        List<RoomVO> diagramVOList = diagramList.stream().map(RoomVO::objToVo).collect(Collectors.toList());
+        List<RoomVO> diagramVOList = diagramList.stream().map(room -> {
+            RoomVO roomVO = RoomVO.objToVo(room);
+            // 设置创建用户信息
+            if (room.getOwnerId() != null) {
+                User user = userService.getById(room.getOwnerId());
+                if (user != null) {
+                    UserVO userVO = new UserVO();
+                    BeanUtils.copyProperties(user, userVO);
+                    roomVO.setUserVO(userVO);
+                }
+            }
+            return roomVO;
+        }).collect(Collectors.toList());
         diagramVOPage.setRecords(diagramVOList);
         return diagramVOPage;
     }
@@ -86,7 +110,17 @@ public class DiagramRoomServiceImpl extends ServiceImpl<DiagramRoomMapper, Diagr
     @Override
     public RoomVO getDiagramRoomVO(DiagramRoom room, HttpServletRequest request) {
         // 对象转封装类
-        return RoomVO.objToVo(room);
+        RoomVO roomVO = RoomVO.objToVo(room);
+        // 设置创建用户信息
+        if (room.getOwnerId() != null) {
+            User user = userService.getById(room.getOwnerId());
+            if (user != null) {
+                UserVO userVO = new UserVO();
+                BeanUtils.copyProperties(user, userVO);
+                roomVO.setUserVO(userVO);
+            }
+        }
+        return roomVO;
     }
 }
 

@@ -81,6 +81,12 @@ public class DiagramVO implements Serializable {
     private String diagramCode;
 
     /**
+     * 创建用户信息
+     */
+    @Schema(description = "创建用户信息")
+    private UserVO userVO;
+
+    /**
      * 封装类转对象
      *
      * @param diagramVO

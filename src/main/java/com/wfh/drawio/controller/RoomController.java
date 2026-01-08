@@ -16,6 +16,7 @@ import com.wfh.drawio.model.entity.DiagramRoom;
 import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.RoomVO;
 import com.wfh.drawio.service.DiagramRoomService;
+import com.wfh.drawio.service.SpaceService;
 import com.wfh.drawio.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
@@ -45,6 +46,9 @@ public class RoomController {
     @Resource
     private DiagramRoomMapper roomMapper;
 
+    @Resource
+    private SpaceService spaceService;
+
     /**
      * 保存图表数据(协同编辑用)
      * @param roomId
@@ -72,6 +76,20 @@ public class RoomController {
     @Operation(summary = "创建房间")
     public BaseResponse<Long> addRoom(@RequestBody RoomAddRequest roomAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(roomAddRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+
+        // 如果有空间ID，需要校验空间权限
+        Long spaceId = roomAddRequest.getSpaceId();
+        if (spaceId != null) {
+            // 校验空间是否存在
+            com.wfh.drawio.model.entity.Space space = spaceService.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+            // 校验权限（只有空间创建人才能在空间中创建房间）
+            if (!loginUser.getId().equals(space.getUserId())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+            }
+        }
+
         // 判断房间是否存在，不存在才创建
         LambdaQueryWrapper<DiagramRoom> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(DiagramRoom::getDiagramId, roomAddRequest.getDiagramId());
@@ -79,7 +97,6 @@ public class RoomController {
         if (room == null){
             DiagramRoom newRoom = new DiagramRoom();
             BeanUtils.copyProperties(roomAddRequest, newRoom);
-            User loginUser = userService.getLoginUser(request);
             newRoom.setOwnerId(loginUser.getId());
 
             // 写入数据库
@@ -116,6 +133,8 @@ public class RoomController {
         if (!oldDiagramRoom.getOwnerId().equals(user.getId()) && !userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+        // 空间权限校验
+        spaceService.checkRoomAuth(user, oldDiagramRoom);
         // 操作数据库
         boolean result = roomService.removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -162,8 +181,12 @@ public class RoomController {
         // 查询数据库
         DiagramRoom room = roomService.getById(id);
         ThrowUtils.throwIf(room == null, ErrorCode.NOT_FOUND_ERROR);
+        // 空间权限校验
+        User loginUser = userService.getLoginUser(request);
+        spaceService.checkRoomAuth(loginUser, room);
         // 获取封装类
-        return ResultUtils.success(roomService.getDiagramRoomVO(room, request));
+        RoomVO diagramRoomVO = roomService.getDiagramRoomVO(room, request);
+        return ResultUtils.success(diagramRoomVO);
     }
 
     /**
@@ -197,8 +220,20 @@ public class RoomController {
                                                              HttpServletRequest request) {
         long current = roomQueryRequest.getCurrent();
         long size = roomQueryRequest.getPageSize();
+        Long spaceId = roomQueryRequest.getSpaceId();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+
+        // 如果有空间ID，需要校验空间权限
+        if (spaceId != null) {
+            User loginUser = userService.getLoginUser(request);
+            com.wfh.drawio.model.entity.Space space = spaceService.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+            if (!loginUser.getId().equals(space.getUserId())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+            }
+        }
+
         // 查询数据库
         Page<DiagramRoom> roomPage = roomService.page(new Page<>(current, size),
                 roomService.getQueryWrapper(roomQueryRequest));
@@ -258,6 +293,8 @@ public class RoomController {
         if (!oldDiagramRoom.getOwnerId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+        // 空间权限校验
+        spaceService.checkRoomAuth(loginUser, oldDiagramRoom);
         // 操作数据库
         boolean result = roomService.updateById(room);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
