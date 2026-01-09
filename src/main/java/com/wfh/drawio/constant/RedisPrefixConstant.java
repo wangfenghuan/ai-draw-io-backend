@@ -8,4 +8,6 @@ package com.wfh.drawio.constant;
  * @description:
  */
 public interface RedisPrefixConstant {
+
+    String ALL_DIAGRAM = "all_diagram:";
 }

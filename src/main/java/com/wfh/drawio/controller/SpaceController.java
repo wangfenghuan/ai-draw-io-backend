@@ -11,6 +11,7 @@ import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.model.dto.diagram.DiagramQueryRequest;
 import com.wfh.drawio.model.dto.space.SpaceAddReqeust;
+import com.wfh.drawio.model.dto.space.SpaceEditRequest;
 import com.wfh.drawio.model.dto.space.SpaceQueryRequest;
 import com.wfh.drawio.model.dto.space.SpaceUpdateRequest;
 import com.wfh.drawio.model.entity.Diagram;
@@ -395,7 +396,7 @@ public class SpaceController {
                     - spaceLevel：空间级别（如需升级，请联系管理员）
                     - maxCount、maxSize：由空间级别自动决定
                     """)
-    public BaseResponse<Boolean> editSpace(@RequestBody com.wfh.drawio.model.dto.space.SpaceEditRequest spaceEditRequest,
+    public BaseResponse<Boolean> editSpace(@RequestBody SpaceEditRequest spaceEditRequest,
                                            HttpServletRequest request) {
         if (spaceEditRequest == null || spaceEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

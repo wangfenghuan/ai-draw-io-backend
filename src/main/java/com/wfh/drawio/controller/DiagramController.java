@@ -2,10 +2,13 @@ package com.wfh.drawio.controller;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wfh.drawio.annotation.AuthCheck;
 import com.wfh.drawio.common.*;
+import com.wfh.drawio.constant.RedisPrefixConstant;
 import com.wfh.drawio.constant.UserConstant;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
@@ -29,6 +32,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -646,12 +652,35 @@ public class DiagramController {
      */
     @PostMapping("/getDiagrams")
     public BaseResponse<Page<DiagramVO>> getByPage(@RequestBody DiagramQueryRequest pageRequest){
-        Page<Diagram> page = new Page<>(pageRequest.getCurrent(), pageRequest.getPageSize());
-        List<Diagram> list = diagramService.list(page);
-        List<DiagramVO> diagramVOList = list.stream().map(DiagramVO::objToVo).filter(diagramVO -> diagramVO.getSpaceId() == null).toList();
-        Page<DiagramVO> resPage = new Page<>(pageRequest.getCurrent(), pageRequest.getPageSize());
-        resPage.setRecords(diagramVOList);
-        return ResultUtils.success(resPage);
+        int current = pageRequest.getCurrent();
+        int pageSize = pageRequest.getPageSize();
+        // 构造key
+        String key = String.format(RedisPrefixConstant.ALL_DIAGRAM + "%s:%s:", current, pageSize);
+
+        // 先查询redis是否存在
+        String pageStr = stringRedisTemplate.opsForValue().get(key);
+
+        if (StringUtils.isEmpty(pageStr)){
+            // 如果Redis中是空的话，就查询数据库并构造缓存
+            Page<Diagram> page = new Page<>(pageRequest.getCurrent(), pageRequest.getPageSize());
+            LambdaQueryWrapper<Diagram> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.isNull(Diagram::getSpaceId);
+            Page<Diagram> resultPage = diagramService.page(page, queryWrapper);
+            List<DiagramVO> diagramVOList = resultPage.getRecords().stream()
+                    .map(DiagramVO::objToVo)
+                    .toList();
+            Page<DiagramVO> resPage = new Page<>(pageRequest.getCurrent(), pageRequest.getPageSize());
+            resPage.setRecords(diagramVOList);
+            resPage.setTotal(resultPage.getTotal());
+            String jsonStr = JSONUtil.toJsonStr(resPage);
+            stringRedisTemplate.opsForValue().set(key, jsonStr, RandomUtil.randomInt(10, 40), TimeUnit.MINUTES);
+            return ResultUtils.success(resPage);
+        }else {
+            // redis中不为空的话，直接反序列化之后返回给前端
+            Page<DiagramVO> page = JSONUtil.toBean(pageStr, Page.class);
+
+            return ResultUtils.success(page);
+        }
     }
 
     // endregion
