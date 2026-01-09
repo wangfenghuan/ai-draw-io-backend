@@ -19,14 +19,17 @@ import com.wfh.drawio.model.enums.UserRoleEnum;
 import com.wfh.drawio.model.vo.LoginUserVO;
 import com.wfh.drawio.model.vo.UserVO;
 import com.wfh.drawio.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
-
-import static com.wfh.drawio.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 用户服务实现
@@ -38,10 +41,12 @@ import static com.wfh.drawio.constant.UserConstant.USER_LOGIN_STATE;
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
-    /**
-     * 盐值，混淆密码
-     */
-    public static final String SALT = "yupi";
+    @Resource
+    private PasswordEncoder passwordEncoder;
+
+
+    @Resource
+    private AuthenticationManager authenticationManager;
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -67,12 +72,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (count > 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
             }
-            // 2. 加密
-            String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+            String encodePassword = passwordEncoder.encode(userPassword);
             // 3. 插入数据
             User user = new User();
             user.setUserAccount(userAccount);
-            user.setUserPassword(encryptPassword);
+            user.setUserPassword(encodePassword);
             boolean saveResult = this.save(user);
             if (!saveResult) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
@@ -93,20 +97,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (userPassword.length() < 8) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
         }
-        // 2. 加密
-        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
-        // 查询用户是否存在
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userAccount", userAccount);
-        queryWrapper.eq("userPassword", encryptPassword);
-        User user = this.baseMapper.selectOne(queryWrapper);
-        // 用户不存在
-        if (user == null) {
-            log.info("user login failed, userAccount cannot match userPassword");
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
-        }
-        // 3. 记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+
+        // 2. 使用 Spring Security 进行认证
+        Authentication authenticationToken = new UsernamePasswordAuthenticationToken(userAccount, userPassword);
+        Authentication authenticate = authenticationManager.authenticate(authenticationToken);
+
+        // 3. 将认证信息存储到 SecurityContext
+        SecurityContextHolder.getContext().setAuthentication(authenticate);
+
+        // 4. 从认证结果中获取用户信息
+        User user = (User) authenticate.getPrincipal();
+
         return this.getLoginUserVO(user);
     }
 
@@ -119,19 +120,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public User getLoginUser(HttpServletRequest request) {
-        // 先判断是否已登录
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User) userObj;
-        if (currentUser == null || currentUser.getId() == null) {
+        // 从 SecurityContext 获取认证信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 从数据库查询（追求性能的话可以注释，直接走缓存）
+
+        User currentUser = (User) authentication.getPrincipal();
+
+        // 从数据库查询最新数据
         long userId = currentUser.getId();
-        currentUser = this.getById(userId);
-        if (currentUser == null) {
+        User user = this.getById(userId);
+        if (user == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        return currentUser;
+
+        return user;
     }
 
     /**
@@ -142,13 +147,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public User getLoginUserPermitNull(HttpServletRequest request) {
-        // 先判断是否已登录
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User) userObj;
-        if (currentUser == null || currentUser.getId() == null) {
+        // 从 SecurityContext 获取认证信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof User currentUser)) {
             return null;
         }
-        // 从数据库查询（追求性能的话可以注释，直接走缓存）
+
+        if (currentUser.getId() == null) {
+            return null;
+        }
+
+        // 从数据库查询最新数据
         long userId = currentUser.getId();
         return this.getById(userId);
     }
@@ -161,9 +171,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public boolean isAdmin(HttpServletRequest request) {
-        // 仅管理员可查询
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User) userObj;
+        // 从 SecurityContext 获取认证信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+            return false;
+        }
+
+        User user = (User) authentication.getPrincipal();
         return isAdmin(user);
     }
 
@@ -179,11 +194,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public boolean userLogout(HttpServletRequest request) {
-        if (request.getSession().getAttribute(USER_LOGIN_STATE) == null) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
-        }
-        // 移除登录态
-        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        // 清除 SecurityContext 中的认证信息
+        SecurityContextHolder.clearContext();
         return true;
     }
 

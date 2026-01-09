@@ -2,12 +2,10 @@ package com.wfh.drawio.controller;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wfh.drawio.annotation.AuthCheck;
-import com.wfh.drawio.common.BaseResponse;
-import com.wfh.drawio.common.DeleteRequest;
-import com.wfh.drawio.common.ErrorCode;
-import com.wfh.drawio.common.ResultUtils;
+import com.wfh.drawio.common.*;
 import com.wfh.drawio.constant.UserConstant;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
@@ -32,10 +30,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -74,6 +75,9 @@ public class DiagramController {
 
     @Resource
     private SpaceService spaceService;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 检查是否有上传权限，抢锁
@@ -632,6 +636,22 @@ public class DiagramController {
         boolean result = diagramService.updateById(diagram);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
+    }
+
+
+    /**
+     * 获取所有公共空间下的图表
+     * @param pageRequest
+     * @return
+     */
+    @PostMapping("/getDiagrams")
+    public BaseResponse<Page<DiagramVO>> getByPage(@RequestBody DiagramQueryRequest pageRequest){
+        Page<Diagram> page = new Page<>(pageRequest.getCurrent(), pageRequest.getPageSize());
+        List<Diagram> list = diagramService.list(page);
+        List<DiagramVO> diagramVOList = list.stream().map(DiagramVO::objToVo).filter(diagramVO -> diagramVO.getSpaceId() == null).toList();
+        Page<DiagramVO> resPage = new Page<>(pageRequest.getCurrent(), pageRequest.getPageSize());
+        resPage.setRecords(diagramVOList);
+        return ResultUtils.success(resPage);
     }
 
     // endregion

@@ -8,12 +8,12 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 系统角色表
- * @TableName sys_role
+ * 用户-角色关联表
+ * @TableName sys_user_role_rel
  */
-@TableName(value ="sys_role")
+@TableName(value ="sys_user_role_rel")
 @Data
-public class SysRole {
+public class SysUserRoleRel {
     /**
      * 主键ID
      */
@@ -21,14 +21,14 @@ public class SysRole {
     private Long id;
 
     /**
-     * 角色名称
+     * 用户ID
      */
-    private String name;
+    private Long userId;
 
     /**
-     * 角色描述
+     * 角色ID
      */
-    private String description;
+    private Long roleId;
 
     /**
      * 创建时间
@@ -41,7 +41,7 @@ public class SysRole {
     private Date updateTime;
 
     /**
-     * 是否删除(0:未删 1:已删)
+     * 是否删除
      */
     @TableLogic
     private Integer isDelete;

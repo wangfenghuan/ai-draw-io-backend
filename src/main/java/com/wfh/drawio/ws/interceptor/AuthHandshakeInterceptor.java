@@ -1,14 +1,11 @@
 package com.wfh.drawio.ws.interceptor;
 
 import com.wfh.drawio.model.entity.User;
-import com.wfh.drawio.service.DiagramService;
-import com.wfh.drawio.service.UserService;
-import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
-import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
@@ -25,17 +22,21 @@ import java.util.Map;
 @Component
 public class AuthHandshakeInterceptor implements HandshakeInterceptor {
 
-    @Resource
-    private UserService userService;
 
     @Override
     public boolean beforeHandshake(@NotNull ServerHttpRequest request, @NotNull ServerHttpResponse response, @NotNull WebSocketHandler wsHandler, @NotNull Map<String, Object> attributes) throws Exception {
-        HttpServletRequest servletRequest = ((ServletServerHttpRequest) request).getServletRequest();
-        // 校验用户是否登录和房间是否有权限
-        User loginUser = userService.getLoginUser(servletRequest);
-        if (loginUser == null){
+        // 从 SecurityContext 获取认证信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
             return false;
         }
+
+        User loginUser = (User) authentication.getPrincipal();
+        if (loginUser == null || loginUser.getId() == null) {
+            return false;
+        }
+
         attributes.put("userId", loginUser.getId());
         return true;
     }

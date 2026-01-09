@@ -7,8 +7,14 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
+
 import lombok.Data;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 /**
  * 用户
@@ -19,7 +25,7 @@ import lombok.Data;
 @TableName(value = "sys_user")
 @Data
 @Schema(name = "User", description = "用户表")
-public class User implements Serializable {
+public class User implements Serializable, UserDetails {
 
     /**
      * id
@@ -89,6 +95,12 @@ public class User implements Serializable {
     private Date updateTime;
 
     /**
+     * 角色
+     */
+    @TableField(exist = false)
+    private List<SysAuthority> authorities = new ArrayList<>();
+
+    /**
      * 是否删除
      */
     @TableLogic
@@ -97,4 +109,39 @@ public class User implements Serializable {
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return authorities;
+    }
+
+    @Override
+    public String getPassword() {
+        return userPassword;
+    }
+
+    @Override
+    public String getUsername() {
+        return userAccount;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 }

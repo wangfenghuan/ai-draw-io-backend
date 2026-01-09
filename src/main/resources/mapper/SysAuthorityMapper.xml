@@ -2,18 +2,22 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.wfh.drawio.mapper.SysRoleMapper">
+<mapper namespace="com.wfh.drawio.mapper.SysAuthorityMapper">
 
-    <resultMap id="BaseResultMap" type="com.wfh.drawio.model.entity.SysRole">
+    <resultMap id="BaseResultMap" type="com.wfh.drawio.model.entity.SysAuthority">
             <id property="id" column="id" />
+            <result property="parentId" column="parentId" />
             <result property="name" column="name" />
             <result property="description" column="description" />
+            <result property="resource" column="resource" />
+            <result property="type" column="type" />
             <result property="createTime" column="createTime" />
             <result property="updateTime" column="updateTime" />
             <result property="isDelete" column="isDelete" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,name,description,createTime,updateTime,isDelete
+        id,parentId,name,description,resource,type,
+        createTime,updateTime,isDelete
     </sql>
 </mapper>
