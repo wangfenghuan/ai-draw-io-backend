@@ -12,16 +12,21 @@ import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.mapper.DiagramRoomMapper;
 import com.wfh.drawio.model.dto.room.*;
+import com.wfh.drawio.model.entity.Diagram;
 import com.wfh.drawio.model.entity.DiagramRoom;
+import com.wfh.drawio.model.entity.Space;
 import com.wfh.drawio.model.entity.User;
+import com.wfh.drawio.model.vo.DiagramVO;
 import com.wfh.drawio.model.vo.RoomVO;
 import com.wfh.drawio.service.DiagramRoomService;
+import com.wfh.drawio.service.DiagramService;
 import com.wfh.drawio.service.SpaceService;
 import com.wfh.drawio.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,6 +55,10 @@ public class RoomController {
     @Resource
     private SpaceService spaceService;
 
+    @Resource
+    @Lazy
+    private DiagramService diagramService;
+
     /**
      * 保存图表数据(协同编辑用)
      * @param roomId
@@ -68,6 +77,49 @@ public class RoomController {
     }
 
     /**
+     * 根据ID获取房间内的图表详情
+     * 获取指定图表的详细信息（封装类）
+     *
+     * @param diagramId 图表ID
+     * @param roomId 房间id
+     * @param request HTTP请求
+     * @return 图表详情（封装类）
+     */
+    @GetMapping("/getDiagram")
+    @Operation(summary = "获取房间内的图表详情",
+            description = """
+                    根据ID获取图表的详细信息。
+
+                    **权限要求：**
+                    - 需要登录
+                    - 公共图库：仅图表创建人或管理员可查看
+                    - 私有空间：需要空间权限校验
+                    - 
+                    **返回内容：**
+                    - 图表基本信息（ID、名称、描述等）
+                    - 文件URL（svgUrl、pictureUrl）
+                    - 文件大小（svgSize、pngSize、picSize）
+                    - 所属空间信息（spaceId）
+                    """)
+    public BaseResponse<DiagramVO> getRoomDiagramVO(long diagramId , long roomId , HttpServletRequest request) {
+        ThrowUtils.throwIf(diagramId <= 0 || roomId <= 0, ErrorCode.PARAMS_ERROR);
+        // 查询数据库
+        Diagram diagram = diagramService.getById(diagramId);
+        ThrowUtils.throwIf(diagram == null, ErrorCode.NOT_FOUND_ERROR);
+        // 空间权限校验 + 房间权限校验。如果房间是公开的，就可以访问,不是公开的，或者是团队空间内的只能团队内的成员访问。
+        Long spaceId = diagram.getSpaceId();
+        DiagramRoom room = roomService.getById(roomId);
+        Integer isPublic = room.getIsPublic();
+        // 如果协作房间是公开的，并且是私有空间，再校验空间权限
+        if (spaceId != null && isPublic == 0){
+            User loginUser = userService.getLoginUser(request);
+            spaceService.checkDiagramAuth(loginUser, diagram);
+        }
+        // 获取封装类
+        return ResultUtils.success(diagramService.getDiagramVO(diagram, request));
+    }
+
+    /**
      * 创建房间
      * @param roomAddRequest
      * @param request
@@ -83,7 +135,7 @@ public class RoomController {
         Long spaceId = roomAddRequest.getSpaceId();
         if (spaceId != null) {
             // 校验空间是否存在
-            com.wfh.drawio.model.entity.Space space = spaceService.getById(spaceId);
+            Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
             // 校验权限（只有空间创建人才能在空间中创建房间）
             if (!loginUser.getId().equals(space.getUserId())) {
@@ -228,7 +280,7 @@ public class RoomController {
         // 如果有空间ID，需要校验空间权限
         if (spaceId != null) {
             User loginUser = userService.getLoginUser(request);
-            com.wfh.drawio.model.entity.Space space = spaceService.getById(spaceId);
+            Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
             if (!loginUser.getId().equals(space.getUserId())) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");

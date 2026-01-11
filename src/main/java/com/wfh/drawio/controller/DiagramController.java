@@ -478,7 +478,7 @@ public class DiagramController {
         ThrowUtils.throwIf(diagram == null, ErrorCode.NOT_FOUND_ERROR);
         // 空间权限校验
         Long spaceId = diagram.getSpaceId();
-        if (spaceId != null){
+        if (spaceId != null ){
             User loginUser = userService.getLoginUser(request);
             spaceService.checkDiagramAuth(loginUser, diagram);
         }
