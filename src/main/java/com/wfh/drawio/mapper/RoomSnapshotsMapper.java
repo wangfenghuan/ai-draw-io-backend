@@ -19,7 +19,7 @@ public interface RoomSnapshotsMapper extends BaseMapper<RoomSnapshots> {
      */
     default RoomSnapshots selectLatestByRoom(String roomName){
         return selectOne(new LambdaQueryWrapper<RoomSnapshots>()
-                .eq(RoomSnapshots::getRoomName, roomName)
+                .eq(RoomSnapshots::getRoomId, roomName)
                 .orderByDesc(RoomSnapshots::getId)
                 .last("LIMIT 1"));
     }

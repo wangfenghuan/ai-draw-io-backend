@@ -23,7 +23,7 @@ public interface RoomUpdatesMapper extends BaseMapper<RoomUpdates> {
      */
     default List<RoomUpdates> selectByRoomAndIdAfter(String roomName, long lastUpdateId) {
         return selectList(new LambdaQueryWrapper<RoomUpdates>()
-                .eq(RoomUpdates::getRoomName, roomName)
+                .eq(RoomUpdates::getRoomId, roomName)
                 // id > lastUpdateId
                 .gt(RoomUpdates::getId, lastUpdateId)
                 // 必须按时间顺序
@@ -39,7 +39,7 @@ public interface RoomUpdatesMapper extends BaseMapper<RoomUpdates> {
     default int deleteByRoomAndTimeBefore(Long roomId, LocalDateTime safeTime) {
         // 构建删除条件
         LambdaQueryWrapper<RoomUpdates> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(RoomUpdates::getId, roomId)
+        wrapper.eq(RoomUpdates::getRoomId, roomId)
                 // and created_at < ? (lt = less than)
                 .lt(RoomUpdates::getCreateTime, safeTime);
         // 调用 BaseMapper 自带的 delete 方法

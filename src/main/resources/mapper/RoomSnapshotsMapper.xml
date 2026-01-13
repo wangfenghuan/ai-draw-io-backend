@@ -7,11 +7,12 @@
     <resultMap id="BaseResultMap" type="com.wfh.drawio.model.entity.RoomSnapshots">
             <id property="id" column="id" />
             <result property="roomName" column="roomName" />
+        <result property="roomId" column="roomId" />
             <result property="lastUpdateId" column="lastUpdateId" />
             <result property="createTime" column="createTime" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,roomName,lastUpdateId,createTime,snapshotData
+        id,roomName,lastUpdateId,createTime,snapshotData,roomId
     </sql>
 </mapper>

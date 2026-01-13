@@ -6,11 +6,13 @@
 
     <resultMap id="BaseResultMap" type="com.wfh.drawio.model.entity.RoomUpdates">
             <id property="id" column="id" />
-            <result property="roomName" column="roomName" />
+            <result property="roomId" column="roomId" />
             <result property="createTime" column="createTime" />
+        <result property="updateData" column="updateData" />
+        <result property="isDelete" column="isDelete" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,roomName,createTime,updateData
+        id,roomId,createTime,updateData.isDelete
     </sql>
 </mapper>

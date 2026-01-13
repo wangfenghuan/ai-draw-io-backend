@@ -37,6 +37,12 @@ public class RoomSnapshots {
     private Long lastUpdateId;
 
     /**
+     * 房间id
+     */
+    @Schema(description = "房间ID")
+    private Long roomId;
+
+    /**
      *
      */
     @Schema(description = "创建时间", example = "2024-01-01 10:00:00")

@@ -164,7 +164,7 @@ public class YjsHandler extends BinaryWebSocketHandler {
                     roomUpdates.setUpdateData(yjsUpdate);
                     try {
                         // 尝试转换为 Long，如果失败则使用原始 roomName
-                        roomUpdates.setRoomName(Long.valueOf(roomName));
+                        roomUpdates.setRoomId(Long.valueOf(roomName));
                     } catch (NumberFormatException e) {
                         log.warn("⚠️ 房间 ID {} 无法转换为 Long，使用字符串处理", roomName);
                         // 如果需要支持字符串 roomName，需要修改 RoomUpdates 实体

@@ -28,7 +28,7 @@ public class RoomUpdates {
      * 房间/文件ID
      */
     @Schema(description = "房间/文件ID", example = "10001")
-    private Long roomName;
+    private Long roomId;
 
     /**
      * 产生时间

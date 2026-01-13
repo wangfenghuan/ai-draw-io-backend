@@ -7,10 +7,7 @@ import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.manager.RustFsManager;
 import com.wfh.drawio.model.dto.diagram.*;
-import com.wfh.drawio.model.entity.Diagram;
-import com.wfh.drawio.model.entity.RoomSnapshots;
-import com.wfh.drawio.model.entity.Space;
-import com.wfh.drawio.model.entity.User;
+import com.wfh.drawio.model.entity.*;
 import com.wfh.drawio.model.enums.FileUploadBizEnum;
 import com.wfh.drawio.model.vo.DiagramVO;
 import com.wfh.drawio.service.*;
@@ -44,6 +41,9 @@ public class DiagramController {
     private UserService userService;
 
     @Resource
+    private DiagramRoomService roomService;
+
+    @Resource
     private RustFsManager rustFsManager;
 
     @Resource
@@ -66,8 +66,9 @@ public class DiagramController {
     @Operation(summary = "检查上传权限并抢锁",
             description = "用于协作场景，多个客户端同时编辑时，抢到锁的客户端负责上传图表操作快照到服务器。" +
                     "抢锁成功后有5分钟的冷却期，冷却期内其他客户端无法抢锁。")
-    public boolean checkLock(@PathVariable Long roomId) {
-        return diagramService.tryAcquireLock(String.valueOf(roomId));
+    public BaseResponse<Boolean> checkLock(@PathVariable Long roomId) {
+        boolean b = diagramService.tryAcquireLock(String.valueOf(roomId));
+        return ResultUtils.success(b);
     }
 
     /**
@@ -83,17 +84,20 @@ public class DiagramController {
             description = "保存协作房间的图表状态快照。上传成功后会异步清理旧的操作记录，" +
                     "只保留最近的状态，减少存储空间占用。")
     public BaseResponse<Boolean> uploadSnapshot(@PathVariable Long roomId, @RequestBody byte[] snampshotData){
-        RoomSnapshots byId = snapshotsService.getById(roomId);
-        if (byId == null){
+        DiagramRoom room = roomService.getById(roomId);
+        if (room == null){
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "房间不存在");
         }
-        byId.setLastUpdateId(0L);
-        byId.setSnapshotData(snampshotData);
+        RoomSnapshots roomSnapshots = new RoomSnapshots();
+
+        roomSnapshots.setLastUpdateId(0L);
+        roomSnapshots.setSnapshotData(snampshotData);
+        roomSnapshots.setRoomId(roomId);
         // 更新数据库
-        boolean update = snapshotsService.updateById(byId);
+        boolean b = snapshotsService.saveOrUpdate(roomSnapshots);
         // 异步触发清理任务
         updatesService.cleanOldUpdates(roomId);
-        return ResultUtils.success(update);
+        return ResultUtils.success(b);
     }
 
 
