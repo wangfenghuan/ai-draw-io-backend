@@ -31,6 +31,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * @author fenghuanwang
+ */
 @RestController
 @RequestMapping("/spaceUser")
 @Slf4j
@@ -66,9 +69,9 @@ public class SpaceUserController {
                     - 管理员可以添加成员到任何空间
 
                     **角色说明：**
-                    - sapce_admin：空间管理员，拥有所有权限
+                    - space_admin：空间管理员，拥有所有权限
                     - space_editor：编辑者，可以创建和编辑图表
-                    - sapce_viewer：查看者，只能查看图表
+                    - space_viewer：查看者，只能查看图表
                     """)
     public BaseResponse<Long> addSpaceUser(@RequestBody SpaceUserAddRequest spaceUserAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceUserAddRequest == null, ErrorCode.PARAMS_ERROR);

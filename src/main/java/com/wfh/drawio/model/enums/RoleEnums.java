@@ -20,8 +20,8 @@ public enum RoleEnums {
     DIAGRAM_VIEWER("图表协作房间查看者", "diagram_viewer"),
     ALL_ADMIN("超级管理员", "all_admin"),
     SPACE_EDITOR("团队空间编辑", "space_editor"),
-    SPACE_VIEWER("团队空间查看", "sapce_viewer"),
-    SPACE_ADMIN("团队空间管理员", "sapce_admin");
+    SPACE_VIEWER("团队空间查看", "space_viewer"),
+    SPACE_ADMIN("团队空间管理员", "space_admin");
 
     private final String text;
     private final String value;

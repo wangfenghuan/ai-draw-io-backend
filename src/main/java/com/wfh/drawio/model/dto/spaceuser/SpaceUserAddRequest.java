@@ -4,6 +4,9 @@ import lombok.Data;
 
 import java.io.Serializable;
 
+/**
+ * @author fenghuanwang
+ */
 @Data
 public class SpaceUserAddRequest implements Serializable {
 

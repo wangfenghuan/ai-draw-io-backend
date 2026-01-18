@@ -16,7 +16,7 @@ public interface SpaceRoleService {
     /**
      * 根据空间角色获取对应的权限列表
      *
-     * @param spaceRole 空间角色(如 sapce_admin, space_editor, sapce_viewer)
+     * @param spaceRole 空间角色(如 space_admin, space_editor, space_viewer)
      * @return 权限列表
      */
     List<SysAuthority> getAuthoritiesBySpaceRole(String spaceRole);
