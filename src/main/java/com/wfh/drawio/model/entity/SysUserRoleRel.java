@@ -9,6 +9,7 @@ import lombok.Data;
 
 /**
  * 用户-角色关联表
+ * @author fenghuanwang
  * @TableName sys_user_role_rel
  */
 @TableName(value ="sys_user_role_rel")

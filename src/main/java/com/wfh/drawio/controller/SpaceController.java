@@ -64,7 +64,7 @@ public class SpaceController {
      */
     @PostMapping("/add")
     @Operation(summary = "创建空间")
-    public BaseResponse<Long> addSpace(SpaceAddReqeust spaceAddReqeust, HttpServletRequest request){
+    public BaseResponse<Long> addSpace(@RequestBody SpaceAddReqeust spaceAddReqeust, HttpServletRequest request){
         User loginUser = userService.getLoginUser(request);
         long l = spaceService.addSpace(spaceAddReqeust, loginUser);
         return ResultUtils.success(l);
@@ -431,13 +431,15 @@ public class SpaceController {
      * @return 图表列表（封装类，分页）
      */
     @PostMapping("/list/diagrams/{spaceId}")
+    @PreAuthorize("hasSpaceAuthority(#spaceId, 'space:diagram:view') or hasAuthority('admin')")
     @Operation(summary = "查询空间下的图表列表",
             description = """
                     查询指定空间下的所有图表。
 
                     **权限要求：**
                     - 需要登录
-                    - 仅空间创建人可查询
+                    - 团队空间：需要是空间成员且有查看权限
+                    - 私有空间：仅空间创建人可查询
 
                     **功能说明：**
                     - 返回指定空间下的所有图表
@@ -453,17 +455,10 @@ public class SpaceController {
             HttpServletRequest request) {
         ThrowUtils.throwIf(spaceId <= 0, ErrorCode.PARAMS_ERROR, "空间ID不能为空");
 
-        // 获取登录用户
-        User loginUser = userService.getLoginUser(request);
-
+        // 注解已经做了权限校验
         // 查询空间是否存在
         Space space = spaceService.getById(spaceId);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
-
-        // 权限校验：仅空间创建人可查询
-        if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限查询该空间的图表");
-        }
 
         // 构建查询请求
         if (diagramQueryRequest == null) {

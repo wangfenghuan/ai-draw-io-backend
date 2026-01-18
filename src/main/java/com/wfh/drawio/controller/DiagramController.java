@@ -8,6 +8,7 @@ import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.manager.RustFsManager;
 import com.wfh.drawio.model.dto.diagram.*;
 import com.wfh.drawio.model.entity.*;
+import com.wfh.drawio.model.enums.AuthorityEnums;
 import com.wfh.drawio.model.enums.FileUploadBizEnum;
 import com.wfh.drawio.model.vo.DiagramVO;
 import com.wfh.drawio.service.*;
@@ -55,6 +56,9 @@ public class DiagramController {
     @Resource
     private SpaceService spaceService;
 
+    @Resource
+    private SpaceRoleService spaceRoleService;
+
     /**
      * 检查是否有上传权限，抢锁
      * 用于协作场景，抢到锁的客户端负责上传图表操作快照
@@ -77,17 +81,23 @@ public class DiagramController {
      *
      * @param roomId 房间ID
      * @param snampshotData 快照数据（字节数组）
+     * @param request HTTP请求
      * @return 是否上传成功
      */
     @PostMapping("/uploadSnapshot/{roomId}")
     @Operation(summary = "上传图表快照",
             description = "保存协作房间的图表状态快照。上传成功后会异步清理旧的操作记录，" +
                     "只保留最近的状态，减少存储空间占用。")
-    public BaseResponse<Boolean> uploadSnapshot(@PathVariable Long roomId, @RequestBody byte[] snampshotData){
+    public BaseResponse<Boolean> uploadSnapshot(@PathVariable Long roomId, @RequestBody byte[] snampshotData, HttpServletRequest request){
         DiagramRoom room = roomService.getById(roomId);
         if (room == null){
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "房间不存在");
         }
+
+        // 权限校验
+        User loginUser = userService.getLoginUser(request);
+        spaceService.checkRoomAuth(loginUser, room);
+
         RoomSnapshots roomSnapshots = new RoomSnapshots();
 
         roomSnapshots.setLastUpdateId(0L);
@@ -244,6 +254,7 @@ public class DiagramController {
      * @return 新创建的图表ID
      */
     @PostMapping("/add")
+    @PreAuthorize("(#diagramAddRequest.spaceId == null) or hasSpaceAuthority(#diagramAddRequest.spaceId, 'space:diagram:add') or hasAuthority('admin')")
     @Operation(summary = "创建图表",
             description = """
                     创建一个新的图表记录。
@@ -289,9 +300,16 @@ public class DiagramController {
      * @return 是否删除成功
      */
     @PostMapping("/delete")
+    @PreAuthorize("(#oldDiagram.spaceId == null) or hasSpaceAuthority(#oldDiagram.spaceId, 'space:diagram:delete') or hasAuthority('admin')")
     @Operation(summary = "删除图表",
             description = """
                     删除指定的图表，并自动释放空间额度。
+
+                    **空间类型说明：**
+                    - **spaceId == null：** 公共空间，不参与RBAC权限控制
+                      - 仅图表创建人或管理员可删除
+                    - **spaceId != null：** 私有空间或团队空间，需要RBAC权限控制
+                      - 需要有空间的删除图表权限
 
                     **空间额度影响：**
                     - **私有空间：**
@@ -303,8 +321,8 @@ public class DiagramController {
 
                     **权限要求：**
                     - 需要登录
-                    - 仅图表创建人或管理员可删除
-                    - 私有空间的图表需要额外的空间权限校验
+                    - 公共空间：仅图表创建人或管理员可删除
+                    - 私有/团队空间：需要有空间的删除权限
 
                     **注意事项：**
                     - 删除操作使用事务，确保额度释放和图表删除原子性
@@ -320,11 +338,14 @@ public class DiagramController {
         // 判断是否存在
         Diagram oldDiagram = diagramService.getById(id);
         ThrowUtils.throwIf(oldDiagram == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人或管理员可删除
-        if (!oldDiagram.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+
+        // 注解已经做了空间权限校验,这里只需要校验是否是本人或管理员(针对公共空间)
+        if (oldDiagram.getSpaceId() == null) {
+            // 公共空间：仅本人或管理员可删除
+            if (!oldDiagram.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
         }
-        spaceService.checkDiagramAuth(user, oldDiagram);
 
         // 使用service层方法处理业务逻辑（包含释放额度）
         diagramService.deleteDiagramWithQuota(id);
@@ -399,12 +420,24 @@ public class DiagramController {
         // 查询数据库
         Diagram diagram = diagramService.getById(id);
         ThrowUtils.throwIf(diagram == null, ErrorCode.NOT_FOUND_ERROR);
-        // 空间权限校验
+
+        // 由于需要先查询 diagram 才能知道 spaceId,所以手动检查权限
+        User loginUser = userService.getLoginUser(request);
         Long spaceId = diagram.getSpaceId();
-        if (spaceId != null ){
-            User loginUser = userService.getLoginUser(request);
-            spaceService.checkDiagramAuth(loginUser, diagram);
+
+        if (spaceId != null) {
+            // 团队空间/私有空间: 使用 Spring Security 检查权限
+            if (!spaceRoleService.hasAuthority(loginUser.getId(), spaceId, AuthorityEnums.SPACE_DIAGRAM_VIEW.getValue())
+                    && !userService.isAdmin(loginUser)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无空间查看权限");
+            }
+        } else {
+            // 公共图库：仅本人或管理员可查看
+            if (!diagram.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
         }
+
         // 获取封装类
         return ResultUtils.success(diagramService.getDiagramVO(diagram, request));
     }
@@ -543,7 +576,22 @@ public class DiagramController {
      * @return
      */
     @PostMapping("/edit")
-    @Operation(summary = "编辑图表信息（给用户使用）")
+    @PreAuthorize("(#diagramEditRequest.spaceId == null) or hasSpaceAuthority(#diagramEditRequest.spaceId, 'space:diagram:edit') or hasAuthority('admin')")
+    @Operation(summary = "编辑图表信息（给用户使用）",
+            description = """
+                    编辑图表的基本信息。
+
+                    **空间类型说明：**
+                    - **spaceId == null：** 公共空间，不参与RBAC权限控制
+                      - 仅图表创建人或管理员可编辑
+                    - **spaceId != null：** 私有空间或团队空间，需要RBAC权限控制
+                      - 需要有空间的编辑图表权限
+
+                    **权限要求：**
+                    - 需要登录
+                    - 公共空间：仅图表创建人或管理员可编辑
+                    - 私有/团队空间：需要有空间的编辑权限
+                    """)
     public BaseResponse<Boolean> editDiagram(@RequestBody DiagramEditRequest diagramEditRequest, HttpServletRequest request) {
         if (diagramEditRequest == null || diagramEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -559,10 +607,15 @@ public class DiagramController {
         long id = diagramEditRequest.getId();
         Diagram oldDiagram = diagramService.getById(id);
         ThrowUtils.throwIf(oldDiagram == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人或管理员可编辑
-        if (!oldDiagram.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+
+        // 注解已经做了空间权限校验,这里只需要校验是否是本人或管理员(针对公共图库)
+        if (spaceId == null && oldDiagram.getSpaceId() == null) {
+            // 公共图库，仅本人或管理员可编辑
+            if (!oldDiagram.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
         }
+
         // 校验空间是否一致
         if (spaceId == null){
             if (oldDiagram.getSpaceId() != null){

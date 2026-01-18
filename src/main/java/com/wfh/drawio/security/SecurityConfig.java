@@ -4,9 +4,11 @@ import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.exception.BusinessException;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -31,16 +33,18 @@ import java.util.List;
  * @Author wangfenghuan
  * @Package com.wfh.drawio.security
  * @Date 2026/1/9 13:44
- * @description:
+ * @description: Security配置类
  */
 @EnableWebSecurity
 @Configuration
 @EnableMethodSecurity
-public class SecurityConfig{
+public class SecurityConfig {
 
     @Resource
     private UserDetailsServiceImpl userDetailsService;
 
+    @Resource
+    private ApplicationContext applicationContext;
 
     @Resource
     @Qualifier("handlerExceptionResolver")
@@ -63,29 +67,30 @@ public class SecurityConfig{
                         .requireExplicitSave(true)
                 )
                 .authorizeHttpRequests(auth -> auth
-                // 注册和登录接口
-                .requestMatchers(
-                        "/user/register",
-                        "/user/login",
-                        "/user/logout"
-                ).permitAll()
-                // 接口文档
-                .requestMatchers(
-                        "/doc.html",        // Knife4j 接口文档入口
-                        "/swagger-ui/**",   // Swagger UI 页面
-                        "/swagger-ui.html", // Swagger UI 老版入口
-                        "/v3/api-docs/**",  // OpenAPI 3.0 描述数据 (JSON)
-                        "/webjars/**"       // Swagger 依赖的静态资源 (JS/CSS)
-                ).permitAll().requestMatchers("/excalidraw/**").permitAll()
-                // 静态资源
-                .requestMatchers("/static/**", "/public/**").permitAll()
-                // WebSocket 路径
-                .requestMatchers("/yjs/**").permitAll()
-                // 处理跨域请求的预检请求 (OPTIONS)
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                // 其他所有请求需要认证
-                .anyRequest().authenticated()
-        )
+                        // 注册和登录接口
+                        .requestMatchers(
+                                "/user/register",
+                                "/user/login",
+                                "/user/logout"
+                        ).permitAll()
+                        // 接口文档
+                        .requestMatchers(
+                                "/doc.html",        // Knife4j 接口文档入口
+                                "/swagger-ui/**",   // Swagger UI 页面
+                                "/swagger-ui.html", // Swagger UI 老版入口
+                                "/v3/api-docs/**",  // OpenAPI 3.0 描述数据 (JSON)
+                                "/webjars/**"       // Swagger 依赖的静态资源 (JS/CSS)
+                        ).permitAll()
+                        .requestMatchers("/excalidraw/**").permitAll()
+                        // 静态资源
+                        .requestMatchers("/static/**", "/public/**").permitAll()
+                        // WebSocket 路径
+                        .requestMatchers("/yjs/**").permitAll()
+                        // 处理跨域请求的预检请求 (OPTIONS)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 其他所有请求需要认证
+                        .anyRequest().authenticated()
+                )
                 .exceptionHandling(exceptions -> exceptions
                         // 当用户未登录访问受保护资源时，不要重定向，而是返回 JSON 401
                         .authenticationEntryPoint((request, response, authException) -> {
@@ -111,14 +116,15 @@ public class SecurityConfig{
         return new BCryptPasswordEncoder();
     }
 
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
     /**
-     * 2. 【新增】CORS 配置源
-     * 这里是针对 Session 模式的严格配置
+     * CORS 配置源
+     * 针对 Session 模式的配置
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

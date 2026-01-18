@@ -49,6 +49,12 @@ public class RoomMember {
     private Date createTime;
 
     /**
+     * 创建时间
+     */
+    @Schema(description = "房间角色")
+    private String roomRole;
+
+    /**
      * 更新时间
      */
     @Schema(description = "更新时间", example = "2024-01-01 10:00:00")

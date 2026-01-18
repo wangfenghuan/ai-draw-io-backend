@@ -62,7 +62,13 @@ public class RoomController {
      * @param encryptedData
      */
     @PostMapping("/{roomId}/save")
-    public BaseResponse<Boolean> save(@PathVariable Long roomId, @RequestBody byte[] encryptedData) {
+    @PreAuthorize("hasRoomAuthority(#roomId, 'room:diagram:edit') or hasAuthority('admin')")
+    public BaseResponse<Boolean> save(@PathVariable Long roomId, @RequestBody byte[] encryptedData, HttpServletRequest request) {
+        // 查询房间信息
+        DiagramRoom room = roomService.getById(roomId);
+        ThrowUtils.throwIf(room == null, ErrorCode.NOT_FOUND_ERROR, "房间不存在");
+
+        // 注解已做房间权限校验
         DiagramRoom diagramRoom = new DiagramRoom();
         diagramRoom.setId(roomId);
         diagramRoom.setEncryptedData(encryptedData);
@@ -83,15 +89,16 @@ public class RoomController {
      * @return 图表详情（封装类）
      */
     @GetMapping("/getDiagram")
+    @PreAuthorize("hasRoomAuthority(#roomId, 'room:diagram:view') or hasAuthority('admin')")
     @Operation(summary = "获取房间内的图表详情",
             description = """
                     根据ID获取图表的详细信息。
 
                     **权限要求：**
                     - 需要登录
-                    - 公共图库：仅图表创建人或管理员可查看
-                    - 私有空间：需要空间权限校验
-                    - 
+                    - 协作房间：需要有房间查看权限
+                    - 管理员可以查看所有房间
+
                     **返回内容：**
                     - 图表基本信息（ID、名称、描述等）
                     - 文件URL（svgUrl、pictureUrl）
@@ -103,15 +110,10 @@ public class RoomController {
         // 查询数据库
         Diagram diagram = diagramService.getById(diagramId);
         ThrowUtils.throwIf(diagram == null, ErrorCode.NOT_FOUND_ERROR);
-        // 空间权限校验 + 房间权限校验。如果房间是公开的，就可以访问,不是公开的，或者是团队空间内的只能团队内的成员访问。
-        Long spaceId = diagram.getSpaceId();
         DiagramRoom room = roomService.getById(roomId);
-        Integer isPublic = room.getIsPublic();
-        // 如果协作房间是公开的，并且是私有空间，再校验空间权限
-        if (spaceId != null && isPublic == 0){
-            User loginUser = userService.getLoginUser(request);
-            spaceService.checkDiagramAuth(loginUser, diagram);
-        }
+        ThrowUtils.throwIf(room == null, ErrorCode.NOT_FOUND_ERROR, "房间不存在");
+
+        // 注解已做房间权限校验
         // 获取封装类
         return ResultUtils.success(diagramService.getDiagramVO(diagram, request));
     }
@@ -160,22 +162,26 @@ public class RoomController {
      * @return
      */
     @PostMapping("/delete")
-    @Operation(summary = "删除房间")
+    @PreAuthorize("hasRoomAuthority(#deleteRequest.id, 'room:user:manage') or hasAuthority('admin')")
+    @Operation(summary = "删除房间",
+            description = """
+                    删除指定的协作房间。
+
+                    **权限要求：**
+                    - 需要登录
+                    - 协作房间：需要有房间用户管理权限
+                    - 管理员可以删除任何房间
+                    """)
     public BaseResponse<Boolean> deleteDiagramRoom(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = userService.getLoginUser(request);
         long id = deleteRequest.getId();
         // 判断是否存在
         DiagramRoom oldDiagramRoom = roomService.getById(id);
         ThrowUtils.throwIf(oldDiagramRoom == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人或管理员可删除
-        if (!oldDiagramRoom.getOwnerId().equals(user.getId()) && !userService.isAdmin(request)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        // 空间权限校验
-        spaceService.checkRoomAuth(user, oldDiagramRoom);
+
+        // 注解已做房间权限校验
         // 操作数据库
         boolean result = roomService.removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);

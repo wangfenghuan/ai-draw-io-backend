@@ -52,7 +52,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     @Resource
     @Lazy
     private DiagramService diagramService;
-    @Autowired
+
+    @Resource
+    @Lazy
     private SpaceUserService spaceUserService;
 
     @Override
@@ -93,8 +95,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                     SpaceUser spaceUser = new SpaceUser();
                     spaceUser.setSpaceId(space.getId());
                     spaceUser.setUserId(loginUser.getId());
-                    // todo
-                    spaceUser.setSpaceRole("sapce:admin");
+                    spaceUser.setSpaceRole("space:admin");
                     boolean res = spaceUserService.save(spaceUser);
                     ThrowUtils.throwIf(!res, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
                 }
@@ -174,9 +175,24 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
         } else {
-            // 私有空间，仅空间管理员可操作
-            if (!diagram.getUserId().equals(loginUser.getId())) {
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            // 查询空间信息
+            Space space = this.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+
+            if (SpaceTypeEnum.PRIVATE.getValue() == space.getSpaceType()) {
+                // 私有空间：仅空间创建人
+                if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问私有空间");
+                }
+            } else if (SpaceTypeEnum.TEAM.getValue() == space.getSpaceType()) {
+                // 团队空间：查询 SpaceUser 表校验角色
+                SpaceUser spaceUser = spaceUserService.lambdaQuery()
+                        .eq(SpaceUser::getSpaceId, spaceId)
+                        .eq(SpaceUser::getUserId, loginUser.getId())
+                        .one();
+                if (spaceUser == null && !userService.isAdmin(loginUser)) {
+                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "不是团队空间成员");
+                }
             }
         }
     }
@@ -190,9 +206,24 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
         } else {
-            // 私有空间，仅空间管理员可操作
-            if (!room.getOwnerId().equals(loginUser.getId())) {
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            // 查询空间信息
+            Space space = this.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+
+            if (SpaceTypeEnum.PRIVATE.getValue() == space.getSpaceType()) {
+                // 私有空间：仅空间创建人
+                if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问私有空间");
+                }
+            } else if (SpaceTypeEnum.TEAM.getValue() == space.getSpaceType()) {
+                // 团队空间：查询 SpaceUser 表校验角色
+                SpaceUser spaceUser = spaceUserService.lambdaQuery()
+                        .eq(SpaceUser::getSpaceId, spaceId)
+                        .eq(SpaceUser::getUserId, loginUser.getId())
+                        .one();
+                if (spaceUser == null && !userService.isAdmin(loginUser)) {
+                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "不是团队空间成员");
+                }
             }
         }
     }

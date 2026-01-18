@@ -7,6 +7,7 @@
     <resultMap id="BaseResultMap" type="com.wfh.drawio.model.entity.RoomMember">
             <id property="id" column="id" />
             <result property="userId" column="userId" />
+        <result property="roomRole" column="roomRole" />
             <result property="isDelete" column="isDelete" />
             <result property="createTime" column="createTime" />
             <result property="updateTime" column="updateTime" />

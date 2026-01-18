@@ -2,6 +2,7 @@ package com.wfh.drawio.ws.handler;
 
 import com.wfh.drawio.mapper.DiagramRoomMapper;
 import com.wfh.drawio.model.entity.DiagramRoom;
+import com.wfh.drawio.model.enums.AuthorityEnums;
 import com.wfh.drawio.service.DiagramRoomService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +72,7 @@ public class ExcalidrawHandler extends BinaryWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         // 权限校验
-        if (!hasPermission(session.getPrincipal(), "diagram:view")){
+        if (!hasPermission(session.getPrincipal(), AuthorityEnums.ROOM_DIAGRAM_VIEW.getValue())){
             session.close(CloseStatus.POLICY_VIOLATION);
             return;
         }
@@ -119,8 +120,8 @@ public class ExcalidrawHandler extends BinaryWebSocketHandler {
         byte msgType = buffer.get(0);
         // 获取用户权限
         Principal principal = session.getPrincipal();
-        boolean canView = hasPermission(principal, "diagram:view");
-        boolean canEdit = hasPermission(principal, "diagram:edit");
+        boolean canView = hasPermission(principal, AuthorityEnums.ROOM_DIAGRAM_VIEW.getValue());
+        boolean canEdit = hasPermission(principal, AuthorityEnums.ROOM_DIAGRAM_EDIT.getValue());
         // 无查看权限直接断开
         if (!canView){
             session.close();
@@ -274,7 +275,7 @@ public class ExcalidrawHandler extends BinaryWebSocketHandler {
             // 遍历权限
             for (GrantedAuthority authority : authorities) {
                 String myPerm = authority.getAuthority();
-                if ("admin".equals(myPerm)){
+                if (AuthorityEnums.ADMIN.getValue().equals(myPerm)){
                     // 超级管理员直接放行
                     return true;
                 }

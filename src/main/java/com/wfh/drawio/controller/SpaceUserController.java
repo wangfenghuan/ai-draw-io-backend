@@ -10,9 +10,11 @@ import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.model.dto.spaceuser.SpaceUserAddRequest;
 import com.wfh.drawio.model.dto.spaceuser.SpaceUserEditRequest;
 import com.wfh.drawio.model.dto.spaceuser.SpaceUserQueryRequest;
+import com.wfh.drawio.model.entity.Space;
 import com.wfh.drawio.model.entity.SpaceUser;
 import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.SpaceUserVO;
+import com.wfh.drawio.service.SpaceService;
 import com.wfh.drawio.service.SpaceUserService;
 import com.wfh.drawio.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +22,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +41,9 @@ public class SpaceUserController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private SpaceService spaceService;
+
     /**
      * 添加成员到空间
      * @param spaceUserAddRequest
@@ -45,9 +51,25 @@ public class SpaceUserController {
      * @return
      */
     @PostMapping("/add")
-    @Operation(summary = "添加成员到空间")
+    @PreAuthorize("hasSpaceAuthority(#spaceUserAddRequest.spaceId, 'space:user:manage') or hasAuthority('admin')")
+    @Operation(summary = "添加成员到空间",
+            description = """
+                    添加成员到团队空间并设置角色。
+
+                    **权限要求：**
+                    - 需要登录
+                    - 团队空间：需要有空间用户管理权限
+                    - 管理员可以添加成员到任何空间
+
+                    **角色说明：**
+                    - sapce_admin：空间管理员，拥有所有权限
+                    - space_editor：编辑者，可以创建和编辑图表
+                    - sapce_viewer：查看者，只能查看图表
+                    """)
     public BaseResponse<Long> addSpaceUser(@RequestBody SpaceUserAddRequest spaceUserAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceUserAddRequest == null, ErrorCode.PARAMS_ERROR);
+
+        // 注解已经做了权限校验
         long id = spaceUserService.addSpaceUser(spaceUserAddRequest);
         return ResultUtils.success(id);
     }
@@ -59,7 +81,16 @@ public class SpaceUserController {
      * @return
      */
     @PostMapping("/delete")
-    @Operation(summary = "从空间移除成员")
+    @PreAuthorize("hasSpaceAuthority(#oldSpaceUser.spaceId, 'space:user:manage') or hasAuthority('admin')")
+    @Operation(summary = "从空间移除成员",
+            description = """
+                    从团队空间中移除成员。
+
+                    **权限要求：**
+                    - 需要登录
+                    - 团队空间：需要有空间用户管理权限
+                    - 管理员可以移除任何成员
+                    """)
     public BaseResponse<Boolean> deleteSpaceUser(@RequestBody DeleteRequest deleteRequest,
                                                  HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
@@ -118,7 +149,16 @@ public class SpaceUserController {
      * @return
      */
     @PostMapping("/edit")
-    @Operation(summary = "编辑成员信息（设置权限）")
+    @PreAuthorize("hasSpaceAuthority(#oldSpaceUser.spaceId, 'space:user:manage') or hasAuthority('admin')")
+    @Operation(summary = "编辑成员信息（设置权限）",
+            description = """
+                    修改空间成员的角色权限。
+
+                    **权限要求：**
+                    - 需要登录
+                    - 团队空间：需要有空间用户管理权限
+                    - 管理员可以修改任何成员的权限
+                    """)
     public BaseResponse<Boolean> editSpaceUser(@RequestBody SpaceUserEditRequest spaceUserEditRequest,
                                                HttpServletRequest request) {
         if (spaceUserEditRequest == null || spaceUserEditRequest.getId() <= 0) {

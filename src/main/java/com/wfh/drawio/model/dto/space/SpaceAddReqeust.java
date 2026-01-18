@@ -33,8 +33,6 @@ public class SpaceAddReqeust implements Serializable {
      */
     private Integer spaceType;
 
-
-
     /**
      * 创建用户 id
      */
