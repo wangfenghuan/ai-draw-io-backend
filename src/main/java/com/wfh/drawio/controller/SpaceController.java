@@ -374,6 +374,45 @@ public class SpaceController {
     }
 
     /**
+     * 分页获取当前登录用户加入的空间列表
+     * 查询用户加入的所有团队空间
+     *
+     * @param spaceQueryRequest 查询请求
+     * @param request HTTP请求
+     * @return 加入的空间列表（封装类，分页）
+     */
+    @PostMapping("/joined/list/page/vo")
+    @Operation(summary = "查询我加入的空间",
+            description = """
+                    查询当前登录用户加入的所有团队空间。
+
+                    **权限要求：**
+                    - 需要登录
+                    - 只能查询自己作为成员加入的团队空间
+
+                    **功能说明：**
+                    - 查询用户在 space_user 表中有关联记录的团队空间
+                    - 不包括用户自己创建的私有空间
+
+                    **限制条件：**
+                    - 每页最多20条（防止爬虫）
+                    - 支持按名称、级别等条件筛选
+                    """)
+    public BaseResponse<Page<SpaceVO>> listJoinedSpaceVOByPage(@RequestBody SpaceQueryRequest spaceQueryRequest,
+                                                                HttpServletRequest request) {
+        ThrowUtils.throwIf(spaceQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        long size = spaceQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        // 查询数据库
+        Page<Space> spacePage = spaceService.listJoinedSpaces(spaceQueryRequest, loginUser.getId());
+        // 获取封装类
+        return ResultUtils.success(spaceService.getSpaceVOPage(spacePage, request));
+    }
+
+    /**
      * 编辑空间信息（给用户使用）
      * 用户编辑自己的空间信息
      *

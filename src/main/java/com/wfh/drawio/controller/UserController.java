@@ -1,9 +1,11 @@
 package com.wfh.drawio.controller;
 
+import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 
 import java.util.List;
+import java.util.Random;
 
 
 import com.wfh.drawio.common.BaseResponse;
@@ -64,10 +66,14 @@ public class UserController {
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
+        String userName = userRegisterRequest.getUserName();
+        if (userName == null){
+            userName = "用户" + RandomUtil.randomString(5);
+        }
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             return null;
         }
-        long result = userService.userRegister(userAccount, userPassword, checkPassword);
+        long result = userService.userRegister(userAccount, userPassword, checkPassword, userName);
         return ResultUtils.success(result);
     }
 

@@ -81,4 +81,13 @@ public interface SpaceService extends IService<Space> {
      * @return
      */
     Page<SpaceVO> getSpaceVOPage(Page<Space> spacePage, HttpServletRequest request);
+
+    /**
+     * 分页获取用户加入的空间列表
+     *
+     * @param spaceQueryRequest 查询请求
+     * @param userId 用户ID
+     * @return 空间列表（分页）
+     */
+    Page<Space> listJoinedSpaces(SpaceQueryRequest spaceQueryRequest, Long userId);
 }

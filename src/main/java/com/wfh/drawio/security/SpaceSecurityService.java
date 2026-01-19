@@ -29,21 +29,17 @@ public class SpaceSecurityService {
         if (spaceId == null || authority == null) {
             return false;
         }
-
         // 获取当前认证信息
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
-
         // 从认证信息中获取用户ID
         Object principal = authentication.getPrincipal();
         Long userId = extractUserId(principal);
-
         if (userId == null) {
             return false;
         }
-
         return spaceRoleService.hasAuthority(userId, spaceId, authority);
     }
 
@@ -58,17 +54,14 @@ public class SpaceSecurityService {
         if (spaceId == null || authorities == null || authorities.length == 0) {
             return false;
         }
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
-
         Long userId = extractUserId(authentication.getPrincipal());
         if (userId == null) {
             return false;
         }
-
         return spaceRoleService.hasAnyAuthority(userId, spaceId, authorities);
     }
 

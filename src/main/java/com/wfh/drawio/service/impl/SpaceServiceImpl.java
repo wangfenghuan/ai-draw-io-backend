@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -319,6 +320,55 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 .map(space -> this.getSpaceVO(space, request))
                 .collect(Collectors.toList()));
         return spaceVOPage;
+    }
+
+    /**
+     * 分页获取用户加入的空间列表
+     *
+     * @param spaceQueryRequest 查询请求
+     * @param userId 用户ID
+     * @return 空间列表（分页）
+     */
+    @Override
+    public Page<Space> listJoinedSpaces(SpaceQueryRequest spaceQueryRequest, Long userId) {
+        // 1. 查询用户加入的所有团队空间ID（通过 space_user 表）
+        List<SpaceUser> spaceUsers = spaceUserService.lambdaQuery()
+                .eq(SpaceUser::getUserId, userId)
+                .list();
+        if (spaceUsers == null || spaceUsers.isEmpty()) {
+            // 如果用户没有加入任何空间，返回空页
+            return new Page<>(spaceQueryRequest.getCurrent(), spaceQueryRequest.getPageSize(), 0);
+        }
+        // 2. 提取空间ID列表
+        List<Long> spaceIds = spaceUsers.stream()
+                .map(SpaceUser::getSpaceId)
+                .collect(Collectors.toList());
+
+        // 3 构建查询条件
+        QueryWrapper<Space> queryWrapper = new QueryWrapper<>();
+        // 只查询团队类型的空间
+        queryWrapper.eq("spaceType", SpaceTypeEnum.TEAM.getValue());
+        // 只查询用户加入的空间
+        queryWrapper.in("id", spaceIds);
+        // 4. 添加其他查询条件（如空间名称模糊查询、空间级别等）
+        if (spaceQueryRequest != null) {
+            String spaceName = spaceQueryRequest.getSpaceName();
+            Integer spaceLevel = spaceQueryRequest.getSpaceLevel();
+            String sortField = spaceQueryRequest.getSortField();
+            String sortOrder = spaceQueryRequest.getSortOrder();
+            // 模糊查询
+            queryWrapper.like(StrUtil.isNotBlank(spaceName), "spaceName", spaceName);
+            // 精确查询
+            queryWrapper.eq(ObjectUtils.isNotEmpty(spaceLevel), "spaceLevel", spaceLevel);
+            // 排序
+            queryWrapper.orderBy(StrUtil.isNotBlank(sortField),
+                    "asc".equals(sortOrder), sortField);
+        }
+        // 5. 分页查询
+        long current = spaceQueryRequest != null ? spaceQueryRequest.getCurrent() : 1;
+        long size = spaceQueryRequest != null ? spaceQueryRequest.getPageSize() : 10;
+        Page<Space> spacePage = this.page(new Page<>(current, size), queryWrapper);
+        return spacePage;
     }
 
 }
