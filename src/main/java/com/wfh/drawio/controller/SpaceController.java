@@ -430,7 +430,7 @@ public class SpaceController {
      * @return 图表列表（封装类，分页）
      */
     @PostMapping("/list/diagrams")
-    @PreAuthorize("hasSpaceAuthority(#spaceId, 'space:diagram:view') or hasAuthority('admin')")
+    @PreAuthorize("@spaceSecurityService.hasSpaceAuthority(#diagramQueryRequest.spaceId, 'space:diagram:view') or hasAuthority('admin')")
     @Operation(summary = "查询空间下的图表列表",
             description = """
                     查询指定空间下的所有图表。

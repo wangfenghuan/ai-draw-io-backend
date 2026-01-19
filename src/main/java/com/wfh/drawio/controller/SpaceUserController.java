@@ -58,7 +58,7 @@ public class SpaceUserController {
      * @return
      */
     @PostMapping("/add")
-    @PreAuthorize("hasSpaceAuthority(#spaceUserAddRequest.spaceId, 'space:user:manage') or hasAuthority('admin')")
+    @PreAuthorize("@spaceSecurityService.hasSpaceAuthority(#spaceUserAddRequest.spaceId, 'space:user:manage') or hasAuthority('admin')")
     @Operation(summary = "添加成员到空间",
             description = """
                     添加成员到团队空间并设置角色。

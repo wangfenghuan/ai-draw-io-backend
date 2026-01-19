@@ -254,7 +254,7 @@ public class DiagramController {
      * @return 新创建的图表ID
      */
     @PostMapping("/add")
-    @PreAuthorize("(#diagramAddRequest.spaceId == null) or hasSpaceAuthority(#diagramAddRequest.spaceId, 'space:diagram:add') or hasAuthority('admin')")
+    @PreAuthorize("(#diagramAddRequest.spaceId == null) or @spaceSecurityService.hasSpaceAuthority(#diagramAddRequest.spaceId, 'space:diagram:add') or hasAuthority('admin')")
     @Operation(summary = "创建图表",
             description = """
                     创建一个新的图表记录。
@@ -582,7 +582,7 @@ public class DiagramController {
      * @return
      */
     @PostMapping("/edit")
-    @PreAuthorize("(#diagramEditRequest.spaceId == null) or hasSpaceAuthority(#diagramEditRequest.spaceId, 'space:diagram:edit') or hasAuthority('admin')")
+    @PreAuthorize("(#diagramEditRequest.spaceId == null) or @spaceSecurityService.hasSpaceAuthority(#diagramEditRequest.spaceId, 'space:diagram:edit') or hasAuthority('admin')")
     @Operation(summary = "编辑图表信息（给用户使用）",
             description = """
                     编辑图表的基本信息。

@@ -62,7 +62,7 @@ public class RoomController {
      * @param encryptedData
      */
     @PostMapping("/{roomId}/save")
-    @PreAuthorize("hasRoomAuthority(#roomId, 'room:diagram:edit') or hasAuthority('admin')")
+    @PreAuthorize("@roomSecurityService.hasRoomAuthority(#roomId, 'room:diagram:edit') or hasAuthority('admin')")
     public BaseResponse<Boolean> save(@PathVariable Long roomId, @RequestBody byte[] encryptedData, HttpServletRequest request) {
         // 查询房间信息
         DiagramRoom room = roomService.getById(roomId);
@@ -89,7 +89,7 @@ public class RoomController {
      * @return 图表详情（封装类）
      */
     @GetMapping("/getDiagram")
-    @PreAuthorize("hasRoomAuthority(#roomId, 'room:diagram:view') or hasAuthority('admin')")
+    @PreAuthorize("@roomSecurityService.hasRoomAuthority(#roomId, 'room:diagram:view') or hasAuthority('admin')")
     @Operation(summary = "获取房间内的图表详情",
             description = """
                     根据ID获取图表的详细信息。
@@ -162,7 +162,7 @@ public class RoomController {
      * @return
      */
     @PostMapping("/delete")
-    @PreAuthorize("hasRoomAuthority(#deleteRequest.id, 'room:user:manage') or hasAuthority('admin')")
+    @PreAuthorize("@roomSecurityService.hasRoomAuthority(#deleteRequest.id, 'room:user:manage') or hasAuthority('admin')")
     @Operation(summary = "删除房间",
             description = """
                     删除指定的协作房间。
