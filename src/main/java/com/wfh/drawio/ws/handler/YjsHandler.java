@@ -1,7 +1,5 @@
 package com.wfh.drawio.ws.handler;
 
-import com.wfh.drawio.common.ErrorCode;
-import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.mapper.DiagramRoomMapper;
 import com.wfh.drawio.mapper.RoomSnapshotsMapper;
 import com.wfh.drawio.mapper.RoomUpdatesMapper;
@@ -13,8 +11,6 @@ import com.wfh.drawio.model.entity.Space;
 import com.wfh.drawio.model.entity.SpaceUser;
 import com.wfh.drawio.model.enums.AuthorityEnums;
 import com.wfh.drawio.model.enums.SpaceTypeEnum;
-import com.wfh.drawio.model.enums.SpaceRoleEnum;
-import com.wfh.drawio.service.DiagramRoomService;
 import com.wfh.drawio.service.SpaceService;
 import com.wfh.drawio.ws.service.RoomUpdateBatchService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
