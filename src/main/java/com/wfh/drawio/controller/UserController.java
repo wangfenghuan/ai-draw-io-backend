@@ -1,5 +1,6 @@
 package com.wfh.drawio.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
@@ -126,7 +127,8 @@ public class UserController {
     @Operation(summary = "获取当前登录用户")
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User user = userService.getLoginUser(request);
-        return ResultUtils.success(userService.getLoginUserVO(user));
+        LoginUserVO loginUserVO = userService.getLoginUserVO(user);
+        return ResultUtils.success(loginUserVO);
     }
 
     // endregion
@@ -217,9 +219,13 @@ public class UserController {
     @GetMapping("/get/vo")
     @Operation(summary = "根据 id 获取包装类")
     public BaseResponse<UserVO> getUserVOById(long id, HttpServletRequest request) {
-        BaseResponse<User> response = getUserById(id, request);
-        User user = response.getData();
-        return ResultUtils.success(userService.getUserVO(user));
+        if (id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User user = userService.getLoginUser(request);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
+        UserVO userVO = userService.getUserVO(user);
+        return ResultUtils.success(userVO);
     }
 
     /**
@@ -284,8 +290,8 @@ public class UserController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User loginUser = userService.getLoginUser(request);
-        User user = new User();
-        BeanUtils.copyProperties(userUpdateMyRequest, user);
+        User user = BeanUtil.copyProperties(userUpdateMyRequest, User.class);
+        user.setUserName(userUpdateMyRequest.getUserName());
         user.setId(loginUser.getId());
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);

@@ -598,9 +598,11 @@ public class DiagramController {
         if (diagramEditRequest == null || diagramEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        String title = diagramEditRequest.getName();
+        String description = diagramEditRequest.getDescription();
         Diagram diagram = new Diagram();
         BeanUtils.copyProperties(diagramEditRequest, diagram);
-        diagram.setName(diagramEditRequest.getTitle());
+        diagram.setName(diagramEditRequest.getName());
         // 数据校验
         diagramService.validDiagram(diagram, false);
         User loginUser = userService.getLoginUser(request);
@@ -628,6 +630,8 @@ public class DiagramController {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间id不一致");
             }
         }
+        diagram.setName(title);
+        diagram.setDescription(description);
         // 操作数据库
         boolean result = diagramService.updateById(diagram);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);

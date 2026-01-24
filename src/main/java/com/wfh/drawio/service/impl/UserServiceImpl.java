@@ -1,7 +1,8 @@
 package com.wfh.drawio.service.impl;
 
 
-
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -9,6 +10,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
 import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.mapper.SysRoleMapper;
@@ -136,8 +138,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 5. 从认证结果中获取用户信息
         // 强转前提：你的 User 实体类必须实现了 UserDetails 接口
         User user = (User) authentication.getPrincipal();
-
-        return this.getLoginUserVO(user);
+        LoginUserVO loginUserVO = getLoginUserVO(user);
+        return loginUserVO;
     }
 
 
@@ -156,16 +158,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        User currentUser = (User) authentication.getPrincipal();
-
-        // 从数据库查询最新数据
-        long userId = currentUser.getId();
-        User user = this.getById(userId);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-
-        return user;
+        return (User) authentication.getPrincipal();
     }
 
     /**
@@ -237,9 +230,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             return null;
         }
-        LoginUserVO loginUserVO = new LoginUserVO();
-        BeanUtils.copyProperties(user, loginUserVO);
-        return loginUserVO;
+        LoginUserVO vo = BeanUtil.copyProperties(user, LoginUserVO.class);
+        vo.setUserName(user.getUserName());
+        return vo;
     }
 
     @Override
@@ -247,8 +240,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             return null;
         }
-        UserVO userVO = new UserVO();
-        BeanUtils.copyProperties(user, userVO);
+        UserVO userVO = BeanUtil.copyProperties(user, UserVO.class);
+        userVO.setAuthorities(user.getAuthoritieList());
+        userVO.setUserName(user.getUserName());
         return userVO;
     }
 

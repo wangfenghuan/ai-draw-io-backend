@@ -24,7 +24,7 @@ public class DiagramEditRequest implements Serializable {
      * 标题
      */
     @Schema(description = "图表标题", example = "系统架构图")
-    private String title;
+    private String name;
 
     /**
      * 图表描述

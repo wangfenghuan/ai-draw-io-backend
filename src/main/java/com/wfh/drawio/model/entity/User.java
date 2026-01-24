@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 
 import lombok.Data;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -115,6 +116,10 @@ public class User implements Serializable, UserDetails {
         return authorities;
     }
 
+    public List<SysAuthority> getAuthoritieList() {
+        return authorities;
+    }
+
     @Override
     public String getPassword() {
         return userPassword;
@@ -143,5 +148,9 @@ public class User implements Serializable, UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    public String getUserName() {
+        return userName;
     }
 }
