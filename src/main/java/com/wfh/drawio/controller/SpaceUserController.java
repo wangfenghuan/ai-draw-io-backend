@@ -1,6 +1,7 @@
 package com.wfh.drawio.controller;
 
 import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.wfh.drawio.common.BaseResponse;
 import com.wfh.drawio.common.DeleteRequest;
 import com.wfh.drawio.common.ErrorCode;
@@ -8,6 +9,7 @@ import com.wfh.drawio.common.ResultUtils;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.model.dto.spaceuser.SpaceUserAddRequest;
+import com.wfh.drawio.model.dto.spaceuser.SpaceUserDeleteRequest;
 import com.wfh.drawio.model.dto.spaceuser.SpaceUserEditRequest;
 import com.wfh.drawio.model.dto.spaceuser.SpaceUserQueryRequest;
 import com.wfh.drawio.model.entity.Space;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author fenghuanwang
@@ -45,8 +48,6 @@ public class SpaceUserController {
     @Resource
     private UserService userService;
 
-    @Resource
-    private SpaceService spaceService;
 
     @Resource
     private SpaceRoleService spaceRoleService;
@@ -97,15 +98,17 @@ public class SpaceUserController {
                     - 团队空间：需要有空间用户管理权限
                     - 管理员可以移除任何成员
                     """)
-    @PreAuthorize("@spaceSecurityService.hasSpaceAuthority(#deleteRequest.id, 'space:user:manage') or hasAuthority('admin')")
-    public BaseResponse<Boolean> deleteSpaceUser(@RequestBody DeleteRequest deleteRequest,
+    @PreAuthorize("@spaceSecurityService.hasSpaceAuthority(#deleteRequest.spaceId, 'space:user:manage') or hasAuthority('admin')")
+    public BaseResponse<Boolean> deleteSpaceUser(@RequestBody SpaceUserDeleteRequest deleteRequest,
                                                  HttpServletRequest request) {
-        if (deleteRequest == null || deleteRequest.getId() <= 0) {
+        if (deleteRequest == null || deleteRequest.getSpaceId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        long id = deleteRequest.getId();
-        // 判断是否存在
-        SpaceUser oldSpaceUser = spaceUserService.getById(id);
+        Long userId = deleteRequest.getUserId();
+        // 判断是否存在(根据空间用户id查询)
+        LambdaQueryWrapper<SpaceUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SpaceUser::getUserId, userId);
+        SpaceUser oldSpaceUser = spaceUserService.getOne(wrapper);
         ThrowUtils.throwIf(oldSpaceUser == null, ErrorCode.NOT_FOUND_ERROR);
 
         // 手动校验空间权限（因为需要先查询 oldSpaceUser 才能知道 spaceId）
@@ -115,8 +118,12 @@ public class SpaceUserController {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无空间用户管理权限");
         }
 
-        // 操作数据库
-        boolean result = spaceUserService.removeById(id);
+        // 不能删除自己
+        if (Objects.equals(userId, loginUser.getId())){
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "不能删除自己");
+        }
+        // 操作数据库(根据用户空间表中的用户id删除)
+        boolean result = spaceUserService.remove(wrapper);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }

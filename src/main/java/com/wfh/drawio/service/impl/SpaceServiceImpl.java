@@ -12,6 +12,7 @@ import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.model.dto.space.SpaceAddReqeust;
 import com.wfh.drawio.model.dto.space.SpaceQueryRequest;
 import com.wfh.drawio.model.entity.*;
+import com.wfh.drawio.model.enums.RoleEnums;
 import com.wfh.drawio.model.enums.SpaceLevelEnum;
 import com.wfh.drawio.model.enums.SpaceTypeEnum;
 import com.wfh.drawio.model.vo.SpaceVO;
@@ -95,7 +96,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                     SpaceUser spaceUser = new SpaceUser();
                     spaceUser.setSpaceId(space.getId());
                     spaceUser.setUserId(loginUser.getId());
-                    spaceUser.setSpaceRole("space:admin");
+                    spaceUser.setSpaceRole(RoleEnums.SPACE_ADMIN.getValue());
                     boolean res = spaceUserService.save(spaceUser);
                     ThrowUtils.throwIf(!res, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
                 }

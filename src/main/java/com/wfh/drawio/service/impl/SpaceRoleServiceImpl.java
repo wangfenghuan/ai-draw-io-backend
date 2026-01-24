@@ -5,10 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.mapper.SysRoleMapper;
-import com.wfh.drawio.model.entity.Space;
-import com.wfh.drawio.model.entity.SysAuthority;
-import com.wfh.drawio.model.entity.SysRole;
-import com.wfh.drawio.model.entity.SysRoleAuthorityRel;
+import com.wfh.drawio.model.entity.*;
 import com.wfh.drawio.model.enums.RoleEnums;
 import com.wfh.drawio.service.*;
 import jakarta.annotation.Resource;
@@ -111,9 +108,9 @@ public class SpaceRoleServiceImpl implements SpaceRoleService {
         // 如果是团队空间才走团队空间的权限校验逻辑
         if (spaceType == 1){
             // 查询用户在空间中的角色
-            var spaceUser = spaceUserService.lambdaQuery()
-                    .eq(com.wfh.drawio.model.entity.SpaceUser::getSpaceId, spaceId)
-                    .eq(com.wfh.drawio.model.entity.SpaceUser::getUserId, userId)
+            SpaceUser spaceUser = spaceUserService.lambdaQuery()
+                    .eq(SpaceUser::getSpaceId, spaceId)
+                    .eq(SpaceUser::getUserId, userId)
                     .one();
 
             if (spaceUser == null) {
