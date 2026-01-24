@@ -180,7 +180,6 @@ public class MaterialController {
      */
     @PostMapping("/list/page/vo")
     @Operation(summary = "分页获取素材封装列表")
-    @PreAuthorize("hasAuthority('admin')")
     public BaseResponse<Page<MaterialVO>> listMaterialVOByPage(@RequestBody MaterialQueryRequest materialQueryRequest,
                                                                 HttpServletRequest request) {
         if (materialQueryRequest == null) {
