@@ -34,8 +34,13 @@ public class RedissonManager {
         config.useSingleServer()
                 .setAddress(String.format("redis://%s:%s", host, port))
                 .setDatabase(database)
-                .setConnectionMinimumIdleSize(5)
-                .setConnectionPoolSize(50)
+                .setConnectionMinimumIdleSize(1)
+                .setConnectionPoolSize(10)
+                .setIdleConnectionTimeout(30000)
+                .setConnectTimeout(5000)
+                .setTimeout(3000)
+                .setRetryAttempts(3)
+                .setRetryInterval(1500)
                 .setPassword(password);
         return Redisson.create(config);
     }
