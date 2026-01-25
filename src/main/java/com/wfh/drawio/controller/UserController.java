@@ -15,6 +15,7 @@ import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.common.ResultUtils;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.exception.ThrowUtils;
+import com.wfh.drawio.manager.RustFsManager;
 import com.wfh.drawio.mapper.SysRoleMapper;
 import com.wfh.drawio.model.dto.user.*;
 import com.wfh.drawio.model.entity.SysAuthority;
@@ -30,11 +31,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 用户接口
@@ -49,6 +52,9 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private RustFsManager rustFsManager;
 
 
     // region 登录相关
@@ -274,6 +280,45 @@ public class UserController {
     }
 
     // endregion
+
+    /**
+     * 上传用户头像图片
+     *
+     * @param file
+     * @param request
+     * @return
+     */
+    @PostMapping("/upload/image")
+    @Operation(summary = "上传头像图片")
+    public BaseResponse<String> uploadAvataImage(@RequestPart("file") MultipartFile file,
+                                                    HttpServletRequest request) {
+        ThrowUtils.throwIf(file == null || file.isEmpty(), ErrorCode.PARAMS_ERROR, "文件不能为空");
+
+        // 校验文件大小（最大5MB）
+        long maxSize = 5 * 1024 * 1024L;
+        ThrowUtils.throwIf(file.getSize() > maxSize, ErrorCode.PARAMS_ERROR, "文件大小不能超过5MB");
+
+        // 校验文件类型
+        String contentType = file.getContentType();
+        ThrowUtils.throwIf(contentType == null || !contentType.startsWith("image/"),
+                ErrorCode.PARAMS_ERROR, "只能上传图片文件");
+
+        User loginUser = userService.getLoginUser(request);
+        // 文件目录：feedback/{userId}/{filename}
+        String uuid = RandomStringUtils.randomAlphanumeric(8);
+        String filename = uuid + "-" + file.getOriginalFilename();
+        String filepath = String.format("userAvata/%s/%s", loginUser.getId(), filename);
+
+        try {
+            // 上传文件
+            String fileUrl = rustFsManager.putObject(filepath, file.getInputStream());
+            // 返回可访问地址
+            return ResultUtils.success(fileUrl);
+        } catch (Exception e) {
+            log.error("feedback image upload error, filepath = " + filepath, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+        }
+    }
 
     /**
      * 更新个人信息
