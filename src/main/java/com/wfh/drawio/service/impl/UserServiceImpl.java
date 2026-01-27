@@ -11,6 +11,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
+import cn.hutool.jwt.JWTUtil;
+import cn.hutool.jwt.JWTPayload;
 import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.exception.BusinessException;
 import com.wfh.drawio.mapper.SysRoleMapper;
@@ -122,9 +124,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         securityContextRepository.saveContext(context, request, response);
 
         // 5. 从认证结果中获取用户信息
-        // 强转前提：你的 User 实体类必须实现了 UserDetails 接口
         User user = (User) authentication.getPrincipal();
         LoginUserVO loginUserVO = getLoginUserVO(user);
+        
+        // 使用 Hutool 生成 JWT Token
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("userId", user.getId());
+        // 7天过期
+        payload.put(JWTPayload.EXPIRES_AT, System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7);
+        
+        String token = JWTUtil.createToken(payload, "wfh-drawio-jwt-secret".getBytes());
+        loginUserVO.setToken(token);
+        
         return loginUserVO;
     }
 

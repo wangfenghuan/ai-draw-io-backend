@@ -89,7 +89,7 @@ public class DiagramController {
             description = "保存协作房间的图表状态快照。上传成功后会异步清理旧的操作记录，" +
                     "只保留最近的状态，减少存储空间占用。")
     @PreAuthorize("@roomSecurityService.hasAnyRoomAuthority(#roomId, {'room:diagram:view', 'room:diagram:edit'}) or hasAuthority('admin')")
-    public BaseResponse<Boolean> uploadSnapshot(@PathVariable Long roomId, @RequestBody byte[] snampshotData, HttpServletRequest request){
+    public BaseResponse<Boolean> uploadSnapshot(@PathVariable Long roomId, @RequestBody String snampshotData, HttpServletRequest request){
         DiagramRoom room = roomService.getById(roomId);
         if (room == null){
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "房间不存在");

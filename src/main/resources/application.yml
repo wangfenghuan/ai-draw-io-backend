@@ -57,3 +57,6 @@ knife4j:
   enable: false
   setting:
     language: zh_cn
+
+drawio:
+  internal-token: wfh-drawio-internal-secret-8888

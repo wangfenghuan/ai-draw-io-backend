@@ -107,18 +107,18 @@ public class YjsHandler extends BinaryWebSocketHandler {
         RoomSnapshots roomSnapshots = roomSnapshotsMapper.selectLatestByRoom(roomName);
         long lastUpdatedId = 0;
         // 如果存在快照，先发送快照数据
-        if (roomSnapshots != null) {
-            if (roomSnapshots.getSnapshotData() != null) {
-                // 发送快照时添加 OP_SYNC 前缀
-                byte[] snapshotData = roomSnapshots.getSnapshotData();
-                byte[] payload = new byte[1 + snapshotData.length];
-                payload[0] = OP_SYNC;
-                System.arraycopy(snapshotData, 0, payload, 1, snapshotData.length);
-                session.sendMessage(new BinaryMessage(payload));
-            }
-            // 记录快照截止到的id，后面只查询比这个id更晚的增量
-            lastUpdatedId = roomSnapshots.getLastUpdateId();
-        }
+//        if (roomSnapshots != null) {
+//            if (roomSnapshots.getSnapshotData() != null) {
+//                // 发送快照时添加 OP_SYNC 前缀
+//                byte[] snapshotData = roomSnapshots.getSnapshotData();
+//                byte[] payload = new byte[1 + snapshotData.length];
+//                payload[0] = OP_SYNC;
+//                System.arraycopy(snapshotData, 0, payload, 1, snapshotData.length);
+//                session.sendMessage(new BinaryMessage(payload));
+//            }
+//            // 记录快照截止到的id，后面只查询比这个id更晚的增量
+//            lastUpdatedId = roomSnapshots.getLastUpdateId();
+//        }
         // 获取快照之后的增量数据
         List<RoomUpdates> roomUpdates = roomUpdatesMapper.selectByRoomAndIdAfter(roomName, lastUpdatedId);
         // 逐条发送增量

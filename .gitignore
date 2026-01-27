@@ -48,3 +48,7 @@ Thumbs.db
 # 忽略包含敏感信息的配置文件（如果包含密码/密钥）
 # application-secret.properties
 # .env
+
+# --- Node.js ---
+node/node_modules/
+node/.env

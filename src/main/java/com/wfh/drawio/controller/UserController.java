@@ -1,5 +1,10 @@
 package com.wfh.drawio.controller;
 
+import cn.hutool.jwt.JWTUtil;
+import cn.hutool.jwt.JWTPayload;
+import java.util.HashMap;
+import java.util.Map;
+
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.LineCaptcha;
 import cn.hutool.captcha.ShearCaptcha;
@@ -202,6 +207,15 @@ public class UserController {
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User user = userService.getLoginUser(request);
         LoginUserVO loginUserVO = userService.getLoginUserVO(user);
+        
+        // 使用 Hutool 生成 JWT Token
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("userId", user.getId());
+        payload.put(JWTPayload.EXPIRES_AT, System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7); // 7天过期
+        
+        String token = JWTUtil.createToken(payload, "wfh-drawio-jwt-secret".getBytes());
+        loginUserVO.setToken(token);
+        
         return ResultUtils.success(loginUserVO);
     }
 

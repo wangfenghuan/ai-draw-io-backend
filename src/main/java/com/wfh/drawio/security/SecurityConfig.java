@@ -74,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers("/user/createCaptcha").permitAll()
                         .requestMatchers("/diagram/getDiagrams").permitAll()
                         .requestMatchers("/material/list/page/vo").permitAll()
+                        .requestMatchers("/internal/save", "/internal/auth").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptions -> exceptions

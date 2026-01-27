@@ -64,7 +64,8 @@ public class LoginUserVO implements Serializable {
     /**
      * 用户权限
      */
-    private List<SysAuthority> authorities;
+    @Schema(description = "登录凭证(Session ID)", example = "abcdef-1234-5678")
+    private String token;
 
     private static final long serialVersionUID = 1L;
 }

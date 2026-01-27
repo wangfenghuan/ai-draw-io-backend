@@ -57,8 +57,8 @@ public class RoomSnapshots {
     /**
      * 合并后的完整Yjs文档状态
      */
-    @Schema(description = "合并后的完整Yjs文档状态")
-    private byte[] snapshotData;
+    @Schema(description = "合并后的完整XML快照")
+    private String snapshotData;
 
     /**
      * 是否删除（0未删除，1删除）
