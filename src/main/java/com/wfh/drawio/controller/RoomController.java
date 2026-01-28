@@ -13,10 +13,13 @@ import com.wfh.drawio.model.dto.room.*;
 import com.wfh.drawio.model.entity.Diagram;
 import com.wfh.drawio.model.entity.DiagramRoom;
 import com.wfh.drawio.model.entity.User;
+import com.wfh.drawio.model.dto.roommember.RoomMemberAddRequest;
+import com.wfh.drawio.model.enums.RoleEnums;
 import com.wfh.drawio.model.vo.DiagramVO;
 import com.wfh.drawio.model.vo.RoomVO;
 import com.wfh.drawio.service.DiagramRoomService;
 import com.wfh.drawio.service.DiagramService;
+import com.wfh.drawio.service.RoomMemberService;
 import com.wfh.drawio.service.SpaceService;
 import com.wfh.drawio.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +54,9 @@ public class RoomController {
 
     @Resource
     private SpaceService spaceService;
+
+    @Resource
+    private RoomMemberService roomMemberService;
 
     @Resource
     @Lazy
@@ -146,6 +152,13 @@ public class RoomController {
             boolean result = roomService.save(newRoom);
             ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
             long newRoomId = newRoom.getId();
+
+            // 将创建人设置为房间管理员
+            RoomMemberAddRequest memberAddRequest = new RoomMemberAddRequest();
+            memberAddRequest.setRoomId(newRoomId);
+            memberAddRequest.setUserId(loginUser.getId());
+            memberAddRequest.setRoomRole(RoleEnums.DIAGRAM_ADMIN.getValue());
+            roomMemberService.addRoomMember(memberAddRequest);
             return ResultUtils.success(newRoomId);
         }
         // 房间存在，就返回房间ID
@@ -162,7 +175,7 @@ public class RoomController {
      * @return
      */
     @PostMapping("/delete")
-    @PreAuthorize("@roomSecurityService.hasRoomAuthority(#deleteRequest.id, 'room:user:manage') or hasAuthority('admin')")
+    @PreAuthorize("@roomSecurityService.hasRoomAuthority(#deleteRequest.id, 'room:admin') or hasAuthority('admin')")
     @Operation(summary = "删除房间",
             description = """
                     删除指定的协作房间。

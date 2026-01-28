@@ -126,8 +126,9 @@ public class RoomRoleServiceImpl implements RoomRoleService {
         List<SysAuthority> authorities = getAuthoritiesByRoomRole(roomMember.getRoomRole());
 
         // 检查是否包含指定权限
-        return authorities.stream()
+        boolean b = authorities.stream()
                 .anyMatch(auth -> auth.getAuthority().equals(authority));
+        return b;
     }
 
     @Override
