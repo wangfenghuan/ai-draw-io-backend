@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wfh.drawio.mapper.AiReqLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.wfh.drawio.model.entity.AiReqLog">
+            <id property="id" column="id" />
+            <result property="count" column="count" />
+            <result property="createTime" column="createTime" />
+            <result property="updateTime" column="updateTime" />
+            <result property="isDelete" column="isDelete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,count,createTime,updateTime,isDelete
+    </sql>
+</mapper>

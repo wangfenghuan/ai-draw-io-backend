@@ -2,6 +2,7 @@ package com.wfh.drawio.controller;
 
 import com.wfh.drawio.ai.client.DrawClient;
 import com.wfh.drawio.ai.utils.DiagramContextUtil;
+import com.wfh.drawio.annotation.AiFeature;
 import com.wfh.drawio.annotation.RateLimit;
 import com.wfh.drawio.common.ErrorCode;
 import com.wfh.drawio.exception.BusinessException;
@@ -45,6 +46,7 @@ public class AIClientController {
      */
     @PostMapping("/gen")
     @Deprecated
+    @AiFeature
     public String doChat(String message, String diagramId, String modelId){
         // 绑定会话ID到ThreadLocal
         DiagramContextUtil.bindConversationId(diagramId);
@@ -62,6 +64,7 @@ public class AIClientController {
      * @return
      */
     @PostMapping("/stream")
+    @AiFeature
     @RateLimit(limitType = RateLimitType.USER, rate = 1, rateInterval = 1)
     @Operation(summary = "系统默认llm流式生成图表")
     public SseEmitter doChatStream(@RequestBody CustomChatRequest request){
@@ -81,6 +84,7 @@ public class AIClientController {
      */
     @PostMapping("/custom/stream")
     @Operation(summary = "使用自定义的llm生成图表")
+    @AiFeature
     @RateLimit(limitType = RateLimitType.USER, rate = 1, rateInterval = 1)
     public SseEmitter doCustomChatStream(@RequestBody CustomChatRequest request) {
         String message = request.getMessage();

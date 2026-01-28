@@ -9,6 +9,7 @@
             <result property="roomName" column="roomName" />
         <result property="roomId" column="roomId" />
         <result property="objectKey" column="objectKey" />
+        <result property="snapshotData" column="snapshotData" />
             <result property="lastUpdateId" column="lastUpdateId" />
             <result property="createTime" column="createTime" />
     </resultMap>

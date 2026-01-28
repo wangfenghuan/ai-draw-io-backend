@@ -10,4 +10,10 @@ package com.wfh.drawio.constant;
 public interface RedisPrefixConstant {
 
     String ALL_DIAGRAM = "all_diagram:";
+
+    String GLOBAL_AI_SWITCH_KEY = "system:ai:enabled";
+
+    String USER_AI_SWITCH_KEY = "user:ai:enabled:";
+
+    String GLOBAL_AI_TOKEN_KEY = "system:ai:token";
 }
