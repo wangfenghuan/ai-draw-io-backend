@@ -48,12 +48,10 @@
 
 ## � 演示截图 | Demo & Verify
 
-> *Please add screenshots or GIFs here to demonstrate the AI generation and Real-time collaboration features.*
-> *请在此处添加 AI 生成和实时协作的截图或 GIF 动图，视觉效果对于 GitHub 项目展示至关重要。*
 
 | AI Generation (Stream) | Real-time Collaboration |
 | :---: | :---: |
-| ![AI Generation](src/main/resources/static/2026-01-28%2015-34-32.gif) | ![Real-time Collaboration](src/main/resources/static/2026-01-28%2015-36-48.gif) |
+| ![AI Generation](http://47.95.35.178:9001/drawio/2026-01-28%2015-36-48.gif?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=HF9N36XIGIIENR3ZAW3Z%2F20260128%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260128T075427Z&X-Amz-Expires=604800&X-Amz-Security-Token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3Njk2Mjk5NjMsInBhcmVudCI6InJ1c3Rmc2FkbWluIn0.v1dLKVxg0jlMfn1oeGiQvKVbVCOsWkU1AapHaufQwbZZvqrCUgF9WOOBYVJUbq6kmANLuwTrc04dPqSswchMEw&X-Amz-Signature=fd351b3fd813c44997a277691debbe31d340f4bee48d1ebc036c5b7ffe53b833&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject) | ![Real-time Collaboration](http://47.95.35.178:9001/drawio/2026-01-28%2015-34-32.gif?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=HF9N36XIGIIENR3ZAW3Z%2F20260128%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260128T075510Z&X-Amz-Expires=604800&X-Amz-Security-Token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3Njk2Mjk5NjMsInBhcmVudCI6InJ1c3Rmc2FkbWluIn0.v1dLKVxg0jlMfn1oeGiQvKVbVCOsWkU1AapHaufQwbZZvqrCUgF9WOOBYVJUbq6kmANLuwTrc04dPqSswchMEw&X-Amz-Signature=32f5845c1968f410bc4c2e9ddcd568161bca3440cd1ce40489aa5ba5d660862e&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject) |
 
 ## �🛠️ 技术栈 | Tech Stack
 
