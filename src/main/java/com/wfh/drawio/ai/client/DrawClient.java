@@ -5,6 +5,7 @@ import com.wfh.drawio.ai.advisor.MyLoggerAdvisor;
 import com.wfh.drawio.ai.chatmemory.DbBaseChatMemory;
 import com.wfh.drawio.ai.config.MultiModelFactory;
 import com.wfh.drawio.ai.model.StreamEvent;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import com.wfh.drawio.ai.tools.AppendDiagramTool;
 import com.wfh.drawio.ai.tools.CreateDiagramTool;
 import com.wfh.drawio.ai.tools.EditDiagramTool;
@@ -42,13 +43,17 @@ public class DrawClient {
 
     private final DiagramService diagramService;
 
+    private final QuestionAnswerAdvisor questionAnswerAdvisor;
+
     @Value("${spring.ai.openai.chat.options.model}")
     private String defaultModelId;
 
-    public DrawClient(MultiModelFactory multiModelFactory, DbBaseChatMemory dbBaseChatMemory, DiagramService diagramService) {
+    public DrawClient(MultiModelFactory multiModelFactory, DbBaseChatMemory dbBaseChatMemory,
+                      DiagramService diagramService, QuestionAnswerAdvisor questionAnswerAdvisor) {
         this.multiModelFactory = multiModelFactory;
         this.dbBaseChatMemory = dbBaseChatMemory;
         this.diagramService = diagramService;
+        this.questionAnswerAdvisor = questionAnswerAdvisor;
     }
 
     /**
@@ -74,6 +79,7 @@ public class DrawClient {
                 .defaultSystem(PromptUtil.getSystemPrompt(targetModelId, true))
                 .defaultAdvisors(new MyLoggerAdvisor())
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(dbBaseChatMemory).build())
+                .defaultAdvisors(questionAnswerAdvisor)
                 .build();
     }
 
@@ -100,6 +106,7 @@ public class DrawClient {
                 .defaultSystem(PromptUtil.getSystemPrompt(modelId, true))
                 .defaultAdvisors(new MyLoggerAdvisor())
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(dbBaseChatMemory).build())
+                .defaultAdvisors(questionAnswerAdvisor)
                 .build();
     }
 
@@ -109,12 +116,10 @@ public class DrawClient {
      * @return
      */
     public String doChat(String message, String diagramId, String modelId){
-        // 同步调用不需要 Sink，或者传入 null
         ChatClient chatClient = createChatClient(modelId, diagramId, null);
         ChatResponse chatResponse = chatClient
                 .prompt()
                 .user(message)
-                // 不再手动设置工具，让Spring AI自动发现
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, diagramId))
                 .call()
                 .chatResponse();
