@@ -35,6 +35,9 @@ public class CodePaseController {
     @Resource
     private FileExtractionService fileExtractionService;
 
+    @Resource
+    private com.wfh.drawio.service.SqlParserService sqlParserService;
+
     /**
      * Upload and analyze Spring Boot project ZIP file
      *
@@ -194,6 +197,32 @@ public class CodePaseController {
     private boolean isMiddleware(String name, ProjectStructureDTO full) {
         if (full.getMiddleware() == null) return false;
         return full.getMiddleware().stream().anyMatch(m -> m.getType().equalsIgnoreCase(name));
+    }
+
+    /**
+     * Parse SQL DDL and return structured metadata with inferred relationships
+     *
+     * @param file SQL file (e.g., .sql)
+     * @return List of parsed tables and relationships
+     */
+    @PostMapping("/parse/sql")
+    @Operation(summary = "Parse SQL DDL (Druid + Semantic AI)", 
+               description = "Parses SQL DDL to extracted tables, columns, and infers relationships using semantic analysis")
+    public BaseResponse<java.util.List<com.wfh.drawio.model.dto.codeparse.SqlParseResultDTO>> parseSql(@RequestParam("file") MultipartFile file) {
+        log.info("Received SQL parse request: {}", file.getOriginalFilename());
+
+        if (file.isEmpty()) {
+            return ResultUtils.error(400, "File is empty");
+        }
+
+        try {
+            String sqlContent = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            java.util.List<com.wfh.drawio.model.dto.codeparse.SqlParseResultDTO> result = sqlParserService.parseSql(sqlContent);
+            return ResultUtils.success(result);
+        } catch (Exception e) {
+            log.error("Error parsing SQL", e);
+            return ResultUtils.error(500, "SQL Parsing failed: " + e.getMessage());
+        }
     }
 
     /**
