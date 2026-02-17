@@ -4,6 +4,7 @@ import com.wfh.drawio.common.BaseResponse;
 import com.wfh.drawio.common.ResultUtils;
 import com.wfh.drawio.model.dto.codeparse.ProjectStructureDTO;
 import com.wfh.drawio.model.dto.codeparse.SimplifiedProjectDTO;
+import com.wfh.drawio.model.dto.codeparse.SqlParseResultDTO;
 import com.wfh.drawio.service.FileExtractionService;
 import com.wfh.drawio.service.SpringBootJavaParserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.Resource;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * @Title: CodePaseController
@@ -25,7 +27,7 @@ import java.nio.file.Path;
  */
 @RestController
 @Slf4j
-@RequestMapping("/pasecode")
+@RequestMapping("/codeparse")
 @Tag(name = "Code Parser", description = "Spring Boot Architecture AST Parser API")
 public class CodePaseController {
 
@@ -208,7 +210,7 @@ public class CodePaseController {
     @PostMapping("/parse/sql")
     @Operation(summary = "Parse SQL DDL (Druid + Semantic AI)", 
                description = "Parses SQL DDL to extracted tables, columns, and infers relationships using semantic analysis")
-    public BaseResponse<java.util.List<com.wfh.drawio.model.dto.codeparse.SqlParseResultDTO>> parseSql(@RequestParam("file") MultipartFile file) {
+    public BaseResponse<List<SqlParseResultDTO>> parseSql(@RequestParam("file") MultipartFile file) {
         log.info("Received SQL parse request: {}", file.getOriginalFilename());
 
         if (file.isEmpty()) {

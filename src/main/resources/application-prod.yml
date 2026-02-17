@@ -1,0 +1,144 @@
+spring:
+  application:
+    name: drawio-backend
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope: read:user,user:email
+            redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8081/api/login/oauth2/code/github}
+            client-name: Intellidraw 智能绘图
+            provider: github
+        provider:
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: login
+  ai:
+    custom:
+      models:
+        moonshotai:
+          api-key: ${AI_MOONSHOT_API_KEY}
+          base-url: ${AI_MOONSHOT_BASE_URL:https://api.qnaigc.com}
+          model: moonshotai/kimi-k2.5
+        deepseek:
+          api-key: ${AI_DEEPSEEK_API_KEY}
+          base-url: ${AI_DEEPSEEK_BASE_URL:https://api.qnaigc.com}
+          model: moonshotai/kimi-k2.5
+        glm:
+          api-key: ${AI_GLM_API_KEY}
+          base-url: ${AI_GLM_BASE_URL:https://api.qnaigc.com}
+          model: glm-4.6
+        qwen:
+          api-key: ${AI_QWEN_API_KEY}
+          base-url: ${AI_QWEN_BASE_URL:https://api.qnaigc.com}
+          model: moonshotai/kimi-k2.5
+        duobao:
+          api-key: ${AI_DUOBAO_API_KEY}
+          base-url: ${AI_DUOBAO_BASE_URL:https://api.qnaigc.com}
+          model: moonshotai/kimi-k2.5
+    openai:
+      api-key: ${AI_OPENAI_API_KEY}
+      base-url: ${AI_OPENAI_BASE_URL:https://api.qnaigc.com/v1}
+      chat:
+        options:
+          model: glm-4.6
+      embedding:
+        enabled: false
+    # 独立的 Embedding 模型配置（阿里云 DashScope OpenAI 兼容接口）
+    embedding:
+      dashscope:
+        api-key: ${AI_DASHSCOPE_API_KEY}
+        base-url: https://dashscope.aliyuncs.com/compatible-mode
+        model: text-embedding-v4
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        # 维度指定，需要看 向量模型的配置
+        dimensions: 1024
+        max-document-batch-size: 10000
+        initialize-schema: true
+    rag:
+      top-k: 5
+  datasource:
+    mysql:
+      url: ${MYSQL_URL:jdbc:mysql://localhost:3306/drawio?rewriteBatchedStatements=true&useServerPrepStmts=true}
+      username: ${MYSQL_USERNAME:root}
+      password: ${MYSQL_PASSWORD}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      # MySQL Druid 连接池配置
+      druid:
+        initial-size: 5
+        min-idle: 5
+        max-active: 20
+        max-wait: 60000
+        test-while-idle: true
+        time-between-eviction-runs-millis: 60000
+        min-evictable-idle-time-millis: 30000
+        validation-query: select 'x'
+        test-on-borrow: false
+        test-on-return: false
+        pool-prepared-statements: false
+        filters: stat,wall,slf4j
+        max-pool-prepared-statement-per-connection-size: -1
+        use-global-data-source-stat: true
+        connection-properties: 'druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000'
+    postgres:
+      url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/postgres}
+      username: ${POSTGRES_USERNAME:postgres}
+      password: ${POSTGRES_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      # PostgreSQL Druid 连接池配置
+      druid:
+        initial-size: 2
+        min-idle: 2
+        max-active: 10
+        max-wait: 60000
+        test-while-idle: true
+        time-between-eviction-runs-millis: 60000
+        min-evictable-idle-time-millis: 30000
+        validation-query: select 1
+        test-on-borrow: false
+        test-on-return: false
+
+server:
+  port: 8081
+  servlet:
+    context-path: /api
+    session:
+      timeout: 30d
+rustfs:
+  client:
+    endpoint: ${RUSTFS_ENDPOINT:https://oss.intellidraw.top}
+    access-key: ${RUSTFS_ACCESS_KEY:drawio}
+    acess-secret: ${RUSTFS_ACCESS_SECRET}
+    bucket-name: ${RUSTFS_BUCKET_NAME:drawio}
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  metrics:
+    distribution:
+      percentiles:
+        http:
+          server:
+            requests: 0.5, 0.75, 0.9, 0.95, 0.99

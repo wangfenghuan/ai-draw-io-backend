@@ -1,6 +1,8 @@
 package com.wfh.drawio.model.dto.codeparse;
 
 import lombok.Data;
+
+import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
 
@@ -12,7 +14,7 @@ import java.util.Set;
  * @description: Ultra-simplified architecture view for AI diagram generation
  */
 @Data
-public class SimplifiedProjectDTO {
+public class SimplifiedProjectDTO implements Serializable {
     /**
      * Project name
      */

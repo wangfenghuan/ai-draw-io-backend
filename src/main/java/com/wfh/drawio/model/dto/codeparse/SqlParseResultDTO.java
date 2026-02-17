@@ -1,14 +1,17 @@
 package com.wfh.drawio.model.dto.codeparse;
 
 import lombok.Data;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Result of SQL parsing and semantic analysis
+ * @author fenghuanwang
  */
 @Data
-public class SqlParseResultDTO {
+public class SqlParseResultDTO implements Serializable {
     /**
      * Table name
      */
