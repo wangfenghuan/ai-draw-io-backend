@@ -85,7 +85,25 @@ public class JavaSpringParser implements LanguageParser {
     @Override
     public boolean canParse(String projectDir) {
         File file = new File(projectDir);
-        return file.isDirectory() && new File(file, "pom.xml").exists();
+        if (!file.exists() || !file.isDirectory()) {
+            return false;
+        }
+
+        // Check root first
+        if (new File(file, "pom.xml").exists()) {
+            return true;
+        }
+
+        // Check immediate subdirectories (depth 2) in case of zip wrapper folder
+        try (Stream<Path> paths = Files.walk(Paths.get(projectDir), 2)) {
+            return paths
+                    .filter(p -> p.getFileName().toString().equals("pom.xml"))
+                    .findAny()
+                    .isPresent();
+        } catch (IOException e) {
+            log.error("Error checking for pom.xml", e);
+            return false;
+        }
     }
 
     @Override

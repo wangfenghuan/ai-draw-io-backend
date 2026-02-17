@@ -48,7 +48,13 @@ public class SqlParser implements LanguageParser {
             return file.getName().toLowerCase().endsWith(".sql");
         }
         
-        // If it's a directory, check if it contains any .sql files
+        // If it's a directory:
+        // 1. Avoid claiming it if it's a Java project (has pom.xml or build.gradle)
+        if (new File(file, "pom.xml").exists() || new File(file, "build.gradle").exists()) {
+            return false;
+        }
+
+        // 2. Check if it contains any .sql files
         try (Stream<Path> paths = Files.walk(Paths.get(projectDir))) {
             return paths.anyMatch(p -> p.toString().toLowerCase().endsWith(".sql"));
         } catch (IOException e) {

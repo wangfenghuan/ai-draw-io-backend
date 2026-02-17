@@ -216,7 +216,7 @@ public class CodeParseController {
 
         try {
             String sqlContent = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
-            java.util.List<com.wfh.drawio.model.dto.codeparse.SqlParseResultDTO> result = sqlParserService.parseSql(sqlContent);
+            List<SqlParseResultDTO> result = sqlParserService.parseSql(sqlContent);
             return ResultUtils.success(result);
         } catch (Exception e) {
             log.error("Error parsing SQL", e);
