@@ -1,8 +1,10 @@
 package com.wfh.drawio.controller;
 
+import com.wfh.drawio.core.model.ArchNode;
+import com.wfh.drawio.core.model.ArchRelationship;
+import com.wfh.drawio.core.model.ProjectAnalysisResult;
 import com.wfh.drawio.common.BaseResponse;
 import com.wfh.drawio.common.ResultUtils;
-import com.wfh.drawio.model.dto.codeparse.ProjectStructureDTO;
 import com.wfh.drawio.model.dto.codeparse.SimplifiedProjectDTO;
 import com.wfh.drawio.model.dto.codeparse.SqlParseResultDTO;
 import com.wfh.drawio.service.FileExtractionService;
@@ -29,7 +31,7 @@ import java.util.List;
 @Slf4j
 @RequestMapping("/codeparse")
 @Tag(name = "Code Parser", description = "Spring Boot Architecture AST Parser API")
-public class CodePaseController {
+public class CodeParseController {
 
     @Resource
     private SpringBootJavaParserService javaParserService;
@@ -49,7 +51,7 @@ public class CodePaseController {
     @PostMapping("/upload")
     @Operation(summary = "Upload and Analyze Spring Boot Project", 
                description = "Upload a ZIP file containing Spring Boot source code and get AI-ready architecture analysis")
-    public BaseResponse<ProjectStructureDTO> uploadAndAnalyze(@RequestParam("file") MultipartFile file) {
+    public BaseResponse<ProjectAnalysisResult> uploadAndAnalyze(@RequestParam("file") MultipartFile file) {
         log.info("Received file upload: {}, size: {} bytes", file.getOriginalFilename(), file.getSize());
 
         if (file.isEmpty()) {
@@ -66,10 +68,7 @@ public class CodePaseController {
             log.info("Extracted to: {}", extractedPath.toAbsolutePath());
 
             // Parse project
-            ProjectStructureDTO result = javaParserService.parseProject(extractedPath.toString());
-            
-            // Add extracted path to result for reference
-            result.setProjectPath(extractedPath.toAbsolutePath().toString());
+            ProjectAnalysisResult result = javaParserService.parseProject(extractedPath.toString());
             
             return ResultUtils.success(result);
             
@@ -98,7 +97,7 @@ public class CodePaseController {
         try {
             // Extract and parse
             Path extractedPath = fileExtractionService.extractZipFile(file);
-            ProjectStructureDTO fullResult = javaParserService.parseProject(extractedPath.toString());
+            ProjectAnalysisResult fullResult = javaParserService.parseProject(extractedPath.toString());
             
             // Convert to architecture view
             SimplifiedProjectDTO architecture = convertToArchitecture(fullResult);
@@ -114,32 +113,40 @@ public class CodePaseController {
     /**
      * Convert full project structure to architecture graph
      */
-    private SimplifiedProjectDTO convertToArchitecture(ProjectStructureDTO full) {
+    private SimplifiedProjectDTO convertToArchitecture(ProjectAnalysisResult full) {
         SimplifiedProjectDTO arch = new SimplifiedProjectDTO();
-        arch.setName(full.getProjectName());
+        arch.setName("Analyzed Project");
         
         java.util.Set<String> layers = new java.util.HashSet<>();
         java.util.List<SimplifiedProjectDTO.ComponentNode> components = new java.util.ArrayList<>();
         
-        // 1. Process Components (Beans)
-        if (full.getSpringBeans() != null) {
-            for (com.wfh.drawio.model.dto.codeparse.BeanInfoDTO bean : full.getSpringBeans()) {
-                SimplifiedProjectDTO.ComponentNode node = new SimplifiedProjectDTO.ComponentNode();
-                node.setId(bean.getBeanName());
-                node.setType(bean.getBeanType());
+        // 1. Process Nodes
+        if (full.getNodes() != null) {
+            for (ArchNode node : full.getNodes()) {
+                // Filter interesting nodes (Classes with stereotype, or Middleware)
+                if (node.getStereotype() == null) continue;
+                
+                SimplifiedProjectDTO.ComponentNode sNode = new SimplifiedProjectDTO.ComponentNode();
+                
+                // Use simple ClassName for ID to match previous behavior if possible, 
+                // but ID in ArchNode is full class name.
+                // Let's use node.getName() which is simple name.
+                sNode.setId(node.getName()); 
+                sNode.setType(node.getStereotype().replace("@", "")); // e.g. Controller
+                sNode.setDescription(node.getId()); // Full name as description
                 
                 // Determine layer
                 String layer = "Other";
-                if (bean.getBeanType().contains("Controller")) layer = "Controller Layer";
-                else if (bean.getBeanType().contains("Service")) layer = "Service Layer";
-                else if (bean.getBeanType().contains("Repository") || bean.getBeanType().contains("Mapper")) layer = "Data Layer";
-                else if (bean.getBeanType().contains("Configuration")) layer = "Config Layer";
+                String type = sNode.getType();
+                if (type.contains("Controller")) layer = "Controller Layer";
+                else if (type.contains("Service")) layer = "Service Layer";
+                else if (type.contains("Repository") || type.contains("Mapper")) layer = "Data Layer";
+                else if (type.contains("Configuration")) layer = "Config Layer";
+                else if (type.equalsIgnoreCase("Infrastructure")) layer = "Infrastructure";
                 
-                node.setLayer(layer);
-                node.setDescription(bean.getClassName());
-                
+                sNode.setLayer(layer);
                 layers.add(layer);
-                components.add(node);
+                components.add(sNode);
             }
         }
         arch.setLayers(layers);
@@ -148,38 +155,28 @@ public class CodePaseController {
         // 2. Process Relationships
         java.util.List<SimplifiedProjectDTO.RelationLink> links = new java.util.ArrayList<>();
         if (full.getRelationships() != null) {
-            for (com.wfh.drawio.model.dto.codeparse.RelationshipDTO rel : full.getRelationships()) {
-                // Simplify: class names to bean names (simple heuristic)
-                String from = getSimpleName(rel.getSourceClass());
-                String to = getSimpleName(rel.getTargetClass());
+            for (ArchRelationship rel : full.getRelationships()) {
+                // Determine From/To simple names
+                String from = getSimpleName(rel.getSourceId());
+                String to = getSimpleName(rel.getTargetId());
                 
                 // Only include if both ends are likely components
-                if (isComponent(from, components) && (isComponent(to, components) || isMiddleware(to, full))) {
+                if (isComponent(from, components) && isComponent(to, components)) {
                     SimplifiedProjectDTO.RelationLink link = new SimplifiedProjectDTO.RelationLink();
                     link.setFrom(from);
                     link.setTo(to);
-                    link.setType(rel.getRelationshipType().equals("INJECTS") ? "USES" : rel.getRelationshipType());
+                    link.setType(rel.getType().equals("INJECTS") ? "USES" : rel.getType());
                     links.add(link);
                 }
             }
         }
         arch.setLinks(links);
         
-        // 3. Process Middleware
+        // 3. Process Middleware (In new model, they are just nodes)
         java.util.List<String> external = new java.util.ArrayList<>();
-        if (full.getMiddleware() != null) {
-            for (com.wfh.drawio.model.dto.codeparse.MiddlewareInfoDTO mw : full.getMiddleware()) {
-                external.add(mw.getType());
-                
-                // Add middleware as component nodes to show connections
-                SimplifiedProjectDTO.ComponentNode node = new SimplifiedProjectDTO.ComponentNode();
-                node.setId(mw.getType());
-                node.setType("Middleware");
-                node.setLayer("Infrastructure");
-                node.setDescription("External System");
-                components.add(node);
-            }
-        }
+        full.getNodes().stream()
+            .filter(n -> "MIDDLEWARE".equals(n.getType()))
+            .forEach(n -> external.add(n.getName()));
         arch.setExternalSystems(external);
         
         return arch;
@@ -192,13 +189,12 @@ public class CodePaseController {
     }
     
     private boolean isComponent(String name, java.util.List<SimplifiedProjectDTO.ComponentNode> components) {
-        // Adjust logic to match bean names or class names
-        return components.stream().anyMatch(c -> c.getId().equalsIgnoreCase(name) || c.getDescription().endsWith("." + name));
+        return components.stream().anyMatch(c -> c.getId().equals(name));
     }
     
-    private boolean isMiddleware(String name, ProjectStructureDTO full) {
-        if (full.getMiddleware() == null) return false;
-        return full.getMiddleware().stream().anyMatch(m -> m.getType().equalsIgnoreCase(name));
+    private boolean isMiddleware(String name, ProjectAnalysisResult full) {
+         return full.getNodes().stream()
+                 .anyMatch(n -> "MIDDLEWARE".equals(n.getType()) && n.getName().equals(name));
     }
 
     /**

@@ -1,1 +1,2 @@
 com.wfh.drawio.spi.parser.JavaSpringParser
+com.wfh.drawio.spi.parser.SqlParser
