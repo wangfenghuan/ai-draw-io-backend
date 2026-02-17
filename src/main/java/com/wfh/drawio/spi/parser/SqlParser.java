@@ -137,7 +137,7 @@ public class SqlParser implements LanguageParser {
                     fieldStr += " (PK)";
                 }
                 fields.add(fieldStr);
-                
+
 
             } else if (element instanceof SQLForeignKeyConstraint) {
                 SQLForeignKeyConstraint fk = (SQLForeignKeyConstraint) element;

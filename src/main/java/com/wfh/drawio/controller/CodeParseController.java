@@ -9,6 +9,7 @@ import com.wfh.drawio.model.dto.codeparse.SimplifiedProjectDTO;
 import com.wfh.drawio.model.dto.codeparse.SqlParseResultDTO;
 import com.wfh.drawio.service.FileExtractionService;
 import com.wfh.drawio.service.SpringBootJavaParserService;
+import com.wfh.drawio.service.SqlParserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
@@ -40,7 +41,7 @@ public class CodeParseController {
     private FileExtractionService fileExtractionService;
 
     @Resource
-    private com.wfh.drawio.service.SqlParserService sqlParserService;
+    private SqlParserService sqlParserService;
 
     /**
      * Upload and analyze Spring Boot project ZIP file
