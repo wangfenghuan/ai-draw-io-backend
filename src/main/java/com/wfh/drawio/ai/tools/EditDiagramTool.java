@@ -35,38 +35,13 @@ public class EditDiagramTool {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Tool(name = "edit_diagram", description = """
-        Edit the current diagram by ID-based operations (update/add/delete cells).
-
-        Pass a JSON string with this structure:
-        {
-          "operations": [
-            {
-              "type": "update|add|delete",
-              "cell_id": "cellId",
-              "new_xml": "complete mxCell element (required for update/add)"
-            }
-          ]
-        }
-
-        Operations:
-        - update: Replace an existing cell by its id. Provide cell_id and complete new_xml.
-        - add: Add a new cell. Provide cell_id (new unique id) and new_xml.
-        - delete: Remove a cell by its id. Only cell_id is needed.
-
-        For update/add, new_xml must be a complete mxCell element including mxGeometry.
-
-        Example JSON:
-        {
-          "operations": [
-            {
-              "type": "update",
-              "cell_id": "5",
-              "new_xml": "<mxCell id=\\"5\\" value=\\"Label\\"><mxGeometry x=\\"0\\" y=\\"0\\" width=\\"120\\" height=\\"60\\" as=\\"geometry\\"/></mxCell>"
-            }
-          ]
-        }
-        
-        IMPORTANT: DO NOT wrap the output in markdown code blocks (e.g. ```json ... ```), return raw JSON string.
+        Edit the current diagram with targeted operations. Input: JSON string.
+        Operations: update (replace cell), add (new cell), delete (remove cell by id).
+        Format: {"operations":[{"type":"update|add|delete","cell_id":"id","new_xml":"complete mxCell"}]}
+        - update/add: provide full mxCell element; quotes inside new_xml MUST be escaped as \\\\".
+        - delete: only cell_id needed.
+        - If cell_id is uncertain, use display_diagram to regenerate instead.
+        Do NOT wrap in markdown code blocks.
         """)
     public ToolResult<String, String> editDiagram(
             @ToolParam(description = "JSON string containing the list of operations to perform on the diagram")

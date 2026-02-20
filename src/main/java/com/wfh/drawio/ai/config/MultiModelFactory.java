@@ -51,6 +51,7 @@ public class MultiModelFactory {
         String actualModelName = determineModelName(modelId, config);
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(actualModelName)
+                .maxTokens(8192)  // Draw.io XML 内容较长，需要足够的输出空间避免 tool argument 被截断
                 .temperature(0.7)
                 .build();
 
@@ -81,6 +82,7 @@ public class MultiModelFactory {
         // 构建options
         OpenAiChatOptions openAiChatOptions = OpenAiChatOptions.builder()
                 .model(modelId)
+                .maxTokens(8192)  // 必须显式设置，否则部分模型默认值极低，大 XML 会导致 tool argument JSON 截断
                 .temperature(0.7)
                 .build();
         return OpenAiChatModel.builder()

@@ -3,8 +3,6 @@ package com.wfh.drawio.spi;
 
 import com.wfh.drawio.core.model.ProjectAnalysisResult;
 
-import java.io.File;
-
 /**
  * 核心解析器接口
  * 贡献者只需要实现这个接口，就能支持一种新语言

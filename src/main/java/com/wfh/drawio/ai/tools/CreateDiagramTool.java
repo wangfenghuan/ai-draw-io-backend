@@ -29,28 +29,10 @@ public class CreateDiagramTool {
     }
 
     @Tool(name = "display_diagram", description = """
-        Create a new diagram on draw.io. Pass ONLY the mxCell elements - wrapper tags and root cells are added automatically.
-
-        VALIDATION RULES (XML will be rejected if violated):
-        1. Generate ONLY mxCell elements - NO wrapper tags (<mxfile>, <mxGraphModel>, <root>)
-        2. Do NOT include root cells (id="0" or id="1") - they are added automatically
-        3. All mxCell elements must be siblings - never nested
-        4. Every mxCell needs a unique id (start from "2")
-        5. Every mxCell needs a valid parent attribute (use "1" for top-level)
-        6. Escape special chars in values: &lt; &gt; &amp; &quot;
-        7. DO NOT wrap the output in markdown code blocks (e.g. ```xml ... ```), return raw string.
-
-        Example (generate ONLY this - no wrapper tags):
-        <mxCell id="lane1" value="Frontend" style="swimlane;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="200" height="200" as="geometry"/>
-        </mxCell>
-        <mxCell id="step1" value="Step 1" style="rounded=1;" vertex="1" parent="lane1">
-          <mxGeometry x="20" y="60" width="160" height="40" as="geometry"/>
-        </mxCell>
-
-        Notes:
-        - For AWS diagrams, use AWS 2025 icons.
-        - For animated connectors, add "flowAnimation=1" to edge style.
+        Create or fully replace the diagram. Output ONLY mxCell elements (no wrapper tags, no root cells id=0/1).
+        Rules: siblings only (never nested), IDs start from "2", every cell needs parent attr, \
+        use whiteSpace=wrap;html=1; for text, &lt;br&gt; for line breaks, no XML comments.
+        For AWS diagrams use AWS 2025 icons. Do NOT wrap output in markdown code blocks.
         """)
     public ToolResult<String, String> displayDiagram(
             @ToolParam(description = "The generated XML string containing ONLY mxCell elements")
