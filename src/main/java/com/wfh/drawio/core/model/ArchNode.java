@@ -40,6 +40,13 @@ public class ArchNode {
     private String packageName;
 
     /**
+     * 所属子模块名 (仅多模块项目有值，单模块项目此字段不序列化)
+     * 例如 "user-service"、"order-api"、"common"
+     * LLM 根据此字段在图中绘制模块边界框 (Swimlane / Group)
+     */
+    private String moduleName;
+
+    /**
      * Javadoc 注释纯文本 (帮助 LLM 理解类的业务职责)
      * 为空时不序列化，节省 Token
      */

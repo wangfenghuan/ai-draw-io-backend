@@ -22,6 +22,13 @@ public class ProjectAnalysisResult {
     private String framework = "Spring Boot";
 
     /**
+     * 子模块列表（多模块项目才有值，单模块为 null 不序列化）
+     * 例如: ["user-service", "order-api", "common"]
+     * LLM 根据此列表在图中绘制模块边界框，每个模块内再按 layer 分组
+     */
+    private List<String> modules;
+
+    /**
      * 实际出现的架构层列表 (由 Parser 自动推断)
      * 例如: ["API", "BIZ", "DATA", "INFRA"]
      * LLM 根据此列表在图中创建分组泳道，保证布局清晰

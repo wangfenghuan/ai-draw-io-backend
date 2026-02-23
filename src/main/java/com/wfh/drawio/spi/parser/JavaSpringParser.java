@@ -440,15 +440,25 @@ public class JavaSpringParser implements LanguageParser {
     @Override
     public ProjectAnalysisResult parse(String projectDir) {
         log.info("Starting Spring Boot AST analysis: {}", projectDir);
-        JavaParser javaParser = initializeSymbolSolver(projectDir);
+
+        // 検测子模块：返回 Map<子模块根目录, 模块名>
+        Map<Path, String> moduleMap = detectModules(Paths.get(projectDir));
+        boolean isMultiModule = moduleMap.size() > 1;
+        if (isMultiModule) {
+            log.info("Multi-module project detected, modules: {}", moduleMap.values());
+        }
+
+        JavaParser javaParser = initializeSymbolSolver(projectDir, moduleMap);
         List<ArchNode> rawNodes = new ArrayList<>();
         List<ArchRelationship> rawRelationships = new ArrayList<>();
         Set<String> processedClasses = new HashSet<>();
-        // 收集本次实际用到的中间件 ID（避免重复创建虚拟节点）
         Set<String> usedMiddlewareIds = new LinkedHashSet<>();
 
         try {
             for (Path javaFile : findJavaFiles(projectDir)) {
+                // 确定当前文件属于哪个子模块
+                String moduleName = resolveModuleName(javaFile, moduleMap);
+
                 try {
                     CompilationUnit cu = javaParser.parse(javaFile).getResult().orElse(null);
                     if (cu == null) continue;
@@ -465,8 +475,11 @@ public class JavaSpringParser implements LanguageParser {
                         processedClasses.add(fullName);
 
                         ArchNode node = analyzeClass(clazz, fullName, packageName);
-                        // 只收录有 layer 的节点（即有 Spring 注解的类）
                         if (node != null) {
+                            // 多模块项目才写入 moduleName（单模块为 null，@JsonInclude 不序列化）
+                            if (isMultiModule && moduleName != null) {
+                                node.setModuleName(moduleName);
+                            }
                             rawNodes.add(node);
                             rawRelationships.addAll(
                                 analyzeRelationships(clazz, fullName, cu, usedMiddlewareIds));
@@ -481,7 +494,60 @@ public class JavaSpringParser implements LanguageParser {
             log.error("IO Error scanning project dir", e);
         }
 
-        return buildResult(rawNodes, rawRelationships, usedMiddlewareIds);
+        return buildResult(rawNodes, rawRelationships, usedMiddlewareIds,
+                isMultiModule ? new ArrayList<>(moduleMap.values()) : null);
+    }
+
+    /**
+     * 检测子模块目录。
+     * 规则：根目录下 depth=1 的子目录，如果包含 pom.xml / build.gradle，则认为是子模块。
+     * 返回： Map<子模块根 Path, 模块名>，单模块项目返回包含根目录自身的单元素 Map。
+     */
+    private Map<Path, String> detectModules(Path rootPath) {
+        Map<Path, String> modules = new LinkedHashMap<>();
+        try (Stream<Path> children = Files.list(rootPath)) {
+            children.filter(Files::isDirectory).forEach(dir -> {
+                boolean hasBuildFile = Files.exists(dir.resolve("pom.xml"))
+                        || Files.exists(dir.resolve("build.gradle"))
+                        || Files.exists(dir.resolve("build.gradle.kts"));
+                if (hasBuildFile) {
+                    // 模块名优先从 pom.xml 的 <artifactId> 读取，否则用目录名
+                    String moduleName = readArtifactId(dir.resolve("pom.xml")).orElse(dir.getFileName().toString());
+                    modules.put(dir, moduleName);
+                }
+            });
+        } catch (IOException e) {
+            log.warn("Cannot list root directory for module detection", e);
+        }
+        // 如果没有检测到子模块，就把根目录当作单模块
+        if (modules.isEmpty()) {
+            String name = readArtifactId(rootPath.resolve("pom.xml")).orElse(rootPath.getFileName().toString());
+            modules.put(rootPath, name);
+        }
+        return modules;
+    }
+
+    /** 从 pom.xml 读取 &lt;artifactId&gt;（简单正则表达式，不引入 XML 解析库） */
+    private Optional<String> readArtifactId(Path pomPath) {
+        if (!Files.exists(pomPath)) return Optional.empty();
+        try {
+            String content = Files.readString(pomPath);
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("<artifactId>([^<]+)</artifactId>")
+                    .matcher(content);
+            if (m.find()) return Optional.of(m.group(1).trim());
+        } catch (IOException ignored) { }
+        return Optional.empty();
+    }
+
+    /** 根据文件路径匹配对应的模块名 */
+    private String resolveModuleName(Path javaFile, Map<Path, String> moduleMap) {
+        for (Map.Entry<Path, String> entry : moduleMap.entrySet()) {
+            if (javaFile.startsWith(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     // ─── 核心分析：类 → ArchNode ─────────────────────────────────────────────
@@ -641,7 +707,7 @@ public class JavaSpringParser implements LanguageParser {
     // ─── 结果后处理 ──────────────────────────────────────────────────────────
 
     private ProjectAnalysisResult buildResult(List<ArchNode> nodes, List<ArchRelationship> rels,
-                                               Set<String> usedMiddlewareIds) {
+                                               Set<String> usedMiddlewareIds, List<String> moduleNames) {
         // 1. 为实际用到的中间件创建虚拟节点
         List<ArchNode> allNodes = new ArrayList<>(nodes);
         for (String mwId : usedMiddlewareIds) {
@@ -662,7 +728,6 @@ public class JavaSpringParser implements LanguageParser {
         List<ArchRelationship> cleanRels = rels.stream()
                 .filter(r -> validIds.contains(r.getSourceId()) && validIds.contains(r.getTargetId()))
                 .filter(r -> !r.getSourceId().equals(r.getTargetId()))
-                // 去除重复关系（相同 src+target+type 只保留一条）
                 .collect(Collectors.collectingAndThen(
                         Collectors.toCollection(() -> new TreeSet<>(
                                 Comparator.comparing(r -> r.getSourceId() + "|" + r.getTargetId() + "|" + r.getType())
@@ -682,7 +747,10 @@ public class JavaSpringParser implements LanguageParser {
         result.setNodes(allNodes);
         result.setRelationships(cleanRels);
         result.setLayers(layers);
-        // framework 已在 ProjectAnalysisResult 中有默认值 "Spring Boot"
+        // 多模块项目才写入 modules（单模块为 null，@JsonInclude 不序列化节省 Token）
+        if (moduleNames != null && !moduleNames.isEmpty()) {
+            result.setModules(moduleNames);
+        }
         return result;
     }
 
@@ -807,15 +875,29 @@ public class JavaSpringParser implements LanguageParser {
                 : packageName + "." + clazz.getNameAsString();
     }
 
-    private JavaParser initializeSymbolSolver(String projectDir) {
+    /**
+     * 初始化 Symbol Solver，支持单模块和多模块项目。
+     * 将所有子模块的 src/main/java 目录都注册到 Solver，保证跨模块类型能被正确解析。
+     */
+    private JavaParser initializeSymbolSolver(String projectDir, Map<Path, String> moduleMap) {
         CombinedTypeSolver solver = new CombinedTypeSolver();
         solver.add(new ReflectionTypeSolver());
-        Path srcPath = Paths.get(projectDir, "src", "main", "java");
-        if (Files.exists(srcPath)) {
-            solver.add(new JavaParserTypeSolver(srcPath));
-        } else {
+
+        boolean addedAny = false;
+        for (Path moduleRoot : moduleMap.keySet()) {
+            Path srcPath = moduleRoot.resolve("src").resolve("main").resolve("java");
+            if (Files.exists(srcPath)) {
+                solver.add(new JavaParserTypeSolver(srcPath));
+                addedAny = true;
+                log.debug("Registered source root: {}", srcPath);
+            }
+        }
+
+        // 如果没有找到任何 src/main/java，就 fallback 到根目录
+        if (!addedAny) {
             solver.add(new JavaParserTypeSolver(new File(projectDir)));
         }
+
         ParserConfiguration config = new ParserConfiguration();
         config.setSymbolResolver(new JavaSymbolSolver(solver));
         return new JavaParser(config);
