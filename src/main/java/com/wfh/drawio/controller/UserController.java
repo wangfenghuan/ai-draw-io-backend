@@ -27,6 +27,8 @@ import com.wfh.drawio.exception.ThrowUtils;
 import com.wfh.drawio.manager.RustFsManager;
 import com.wfh.drawio.model.dto.user.*;
 import com.wfh.drawio.model.entity.User;
+import com.wfh.drawio.model.entity.SysAuthority;
+import com.wfh.drawio.mapper.SysAuthorityMapper;
 import com.wfh.drawio.model.enums.RateLimitType;
 import com.wfh.drawio.model.vo.LoginUserVO;
 import com.wfh.drawio.model.vo.RoleWithAuthoritiesVO;
@@ -44,6 +46,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -62,22 +65,16 @@ public class UserController {
     private UserService userService;
 
     @Resource
+    private SysAuthorityMapper sysAuthorityMapper;
+
+    @Resource
     private RustFsManager rustFsManager;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
-    @Value("${spring.security.oauth2.client.provider.github.authorization-uri}")
-    private String baseUrl;
-
-    @Value("${spring.security.oauth2.client.registration.github.client-id}")
-    private String clientId;
-
-    @Value("${spring.security.oauth2.client.registration.github.scope}")
-    private String scope;
-
-    @Value("${spring.security.oauth2.client.registration.github.redirect-uri}")
-    private String redirctUrl;
+    @Resource
+    private PasswordEncoder passwordEncoder;
 
 
     // region 登录相关
@@ -266,8 +263,7 @@ public class UserController {
     }
 
 
-    @Resource
-    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
 
     /**
      * 更新账号（修改密码）
@@ -441,9 +437,14 @@ public class UserController {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = userService.getLoginUser(request);
-        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
+        User user = userService.getById(id);
         UserVO userVO = userService.getUserVO(user);
+        
+        if (userVO != null) {
+            List<SysAuthority> authorities = sysAuthorityMapper.findByUserId(id);
+            userVO.setAuthorities(authorities);
+        }
+        
         return ResultUtils.success(userVO);
     }
 

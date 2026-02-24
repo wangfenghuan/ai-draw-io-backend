@@ -12,6 +12,7 @@
         <result property="userAvatar" column="userAvatar" jdbcType="VARCHAR"/>
         <result property="userProfile" column="userProfile" jdbcType="VARCHAR"/>
         <result property="userRole" column="userRole" jdbcType="VARCHAR"/>
+        <result property="githubAccount" column="githubAccount" jdbcType="VARCHAR"/>
         <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
         <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
         <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
@@ -19,7 +20,7 @@
 
     <sql id="Base_Column_List">
         id,unionId,mpOpenId,
-        userName,userAvatar,userProfile,userAccount,
+        userName,userAvatar,userProfile,userAccount,githubAccount,
         userRole,createTime,updateTime,isDelete
     </sql>
 </mapper>

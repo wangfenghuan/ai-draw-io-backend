@@ -49,7 +49,7 @@ public class OAuth2UserDetailsService {
 
         // 查找本地用户
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUserAccount, githubLogin);
+        wrapper.eq(User::getGithubAccount, githubLogin);
         User user = userMapper.selectOne(wrapper);
 
         if (user == null) {

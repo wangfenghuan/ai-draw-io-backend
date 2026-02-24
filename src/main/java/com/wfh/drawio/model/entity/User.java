@@ -54,6 +54,12 @@ public class User implements Serializable, UserDetails {
     private String unionId;
 
     /**
+     * GitHub平台账号
+     */
+    @Schema(description = "GitHub平台账号", example = "wang")
+    private String githubAccount;
+
+    /**
      * 公众号openId
      */
     @Schema(description = "公众号OpenID", example = "OpenId123456")

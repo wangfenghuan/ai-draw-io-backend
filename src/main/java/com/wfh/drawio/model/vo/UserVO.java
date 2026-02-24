@@ -32,6 +32,12 @@ public class UserVO implements Serializable {
     private String userName;
 
     /**
+     * GitHub平台账号
+     */
+    @Schema(description = "GitHub平台账号", example = "wang")
+    private String githubAccount;
+
+    /**
      * 用户头像
      */
     @Schema(description = "用户头像", example = "https://example.com/avatar.jpg")

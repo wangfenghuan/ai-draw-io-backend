@@ -1,11 +1,8 @@
 package com.wfh.drawio.model.vo;
 
-import com.wfh.drawio.model.entity.SysAuthority;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import lombok.Data;
 
@@ -24,6 +21,12 @@ public class LoginUserVO implements Serializable {
      */
     @Schema(description = "用户ID", example = "10001")
     private Long id;
+
+    /**
+     * GitHub平台账号
+     */
+    @Schema(description = "GitHub平台账号", example = "wang")
+    private String githubAccount;
 
     /**
      * 用户昵称

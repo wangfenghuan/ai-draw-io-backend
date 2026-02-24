@@ -50,7 +50,7 @@ public class OAuth2UserSyncServiceImpl implements OAuth2UserSyncService {
         log.info("开始同步OAuth2用户: githubLogin={}, name={}, email={}", githubLogin, name, email);
         // 查找是否已存在该用户
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUserAccount, githubLogin);
+        wrapper.eq(User::getGithubAccount, githubLogin);
         User existingUser = userService.getOne(wrapper);
 
         if (existingUser != null) {
@@ -76,8 +76,9 @@ public class OAuth2UserSyncServiceImpl implements OAuth2UserSyncService {
         }
         // 创建新用户
         User newUser = new User();
-        newUser.setUserAccount(githubLogin);
-        // 生成随机密码（OAuth2用户不需要密码，但数据库字段非空）
+        // 生成随机账号和密码
+        newUser.setUserAccount("github_" + RandomUtil.randomString(8));
+        newUser.setGithubAccount(githubLogin);
         String randomPassword = RandomUtil.randomString(8);
         newUser.setUserPassword(passwordEncoder.encode(randomPassword));
 
@@ -102,7 +103,7 @@ public class OAuth2UserSyncServiceImpl implements OAuth2UserSyncService {
     @Override
     public User findByGithubLogin(String githubLogin) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUserAccount, githubLogin);
+        wrapper.eq(User::getGithubAccount, githubLogin);
         return userService.getOne(wrapper);
     }
 }

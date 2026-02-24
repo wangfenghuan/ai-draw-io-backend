@@ -66,7 +66,12 @@ public class SecurityConfig {
                         .requireExplicitSave(true)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/user/register", "/user/login", "/user/logout", "/login", "/api/user/send-register-code", "/user/send-register-code",
+                        .requestMatchers("/user/register", "/user/login",
+                                "/user/logout",
+                                "/login",
+                                "/api/user/send-register-code",
+                                "/user/send-register-code",
+                                "/api/login/oauth2/code/github",
                                 "/login/oauth2/code/github").permitAll()
                         .requestMatchers("/doc.html", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/webjars/**").permitAll()
                         .requestMatchers("/excalidraw/**", "/static/**", "/public/**", "/yjs/**").permitAll()
