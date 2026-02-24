@@ -84,7 +84,6 @@ public class AIClientController {
      */
     @PostMapping("/custom/stream")
     @Operation(summary = "使用自定义的llm生成图表")
-    @AiFeature
     @RateLimit(limitType = RateLimitType.USER, rate = 1, rateInterval = 1)
     public SseEmitter doCustomChatStream(@RequestBody CustomChatRequest request) {
         String message = request.getMessage();

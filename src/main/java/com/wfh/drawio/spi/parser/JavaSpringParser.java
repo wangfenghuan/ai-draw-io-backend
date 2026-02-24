@@ -16,6 +16,10 @@ import com.wfh.drawio.core.model.ArchNode;
 import com.wfh.drawio.core.model.ArchRelationship;
 import com.wfh.drawio.core.model.ProjectAnalysisResult;
 import com.wfh.drawio.spi.LanguageParser;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import cn.hutool.dfa.WordTree;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -34,6 +38,7 @@ import java.util.stream.Stream;
  * 1. 每个 Spring Bean 类生成一个 ArchNode，layer + role 双字段精确描述归属
  * 2. 关系仅保留 Spring 注入产生的真实调用链（过滤构造器噪音）
  * 3. @JsonInclude(NON_NULL) 保证空字段不传给 LLM，节省 Token
+ * @author fenghuanwang
  */
 @Slf4j
 public class JavaSpringParser implements LanguageParser {
@@ -72,6 +77,76 @@ public class JavaSpringParser implements LanguageParser {
         ANNOTATION_TO_ROLE.put("Component",        "COMPONENT");
         ANNOTATION_TO_ROLE.put("Configuration",    "CONFIG");
         ANNOTATION_TO_ROLE.put("ConfigurationProperties", "CONFIG");
+    }
+
+    // ─── 依赖分析词树（Aho-Corasick Automaton） ────────────────────────
+
+    private static final WordTree DB_WORD_TREE = new WordTree();
+    private static final Map<String, String> DB_KEYWORD_MAP = new HashMap<>();
+
+    private static final WordTree MW_WORD_TREE = new WordTree();
+    private static final Map<String, String> MW_KEYWORD_MAP = new HashMap<>();
+
+    static {
+        // init db
+        addDbKw("mysql", "MySQL");
+        addDbKw("mybatis", "MySQL"); // mybatis implies db (often mysql)
+        addDbKw("postgresql", "PostgreSQL");
+        addDbKw("ojdbc", "Oracle");
+        addDbKw("mssql", "SQL Server");
+        addDbKw("h2", "H2");
+        addDbKw("mariadb", "MariaDB");
+
+        // init mw (matching artifactId keywords)
+        addMwKw("redis", "middleware:redis");
+        addMwKw("amqp", "middleware:rabbitmq");
+        addMwKw("kafka", "middleware:kafka");
+        addMwKw("rocketmq", "middleware:rocketmq");
+        addMwKw("activemq", "middleware:activemq");
+        addMwKw("pulsar", "middleware:pulsar");
+        addMwKw("elasticsearch", "middleware:elasticsearch");
+        addMwKw("mongodb", "middleware:mongodb");
+        addMwKw("cassandra", "middleware:cassandra");
+        addMwKw("neo4j", "middleware:neo4j");
+        addMwKw("influxdb", "middleware:influxdb");
+        addMwKw("minio", "middleware:objectstorage");
+        addMwKw("oss", "middleware:objectstorage");
+        addMwKw("s3", "middleware:objectstorage");
+        addMwKw("nacos", "middleware:nacos");
+        addMwKw("apollo", "middleware:apollo");
+        addMwKw("zookeeper", "middleware:zookeeper");
+        addMwKw("curator", "middleware:zookeeper");
+        addMwKw("consul", "middleware:consul");
+        addMwKw("jetcd", "middleware:etcd");
+        addMwKw("xxl-job", "middleware:xxljob");
+        addMwKw("quartz", "middleware:quartz");
+        addMwKw("elasticjob", "middleware:elasticjob");
+        addMwKw("sentinel", "middleware:sentinel");
+        addMwKw("resilience4j", "middleware:resilience4j");
+        addMwKw("hystrix", "middleware:hystrix");
+        addMwKw("seata", "middleware:seata");
+        addMwKw("dubbo", "middleware:dubbo");
+        addMwKw("grpc", "middleware:grpc");
+        addMwKw("feign", "middleware:feign");
+        addMwKw("websocket", "middleware:websocket");
+        addMwKw("security", "middleware:security");
+        addMwKw("sa-token", "middleware:satoken");
+        addMwKw("micrometer", "middleware:metrics");
+        addMwKw("prometheus", "middleware:metrics");
+        addMwKw("sleuth", "middleware:tracing");
+        addMwKw("tracing", "middleware:tracing");
+        addMwKw("mail", "middleware:notification");
+        addMwKw("sms", "middleware:notification");
+    }
+
+    private static void addDbKw(String kw, String db) {
+        DB_WORD_TREE.addWord(kw);
+        DB_KEYWORD_MAP.put(kw, db);
+    }
+
+    private static void addMwKw(String kw, String mw) {
+        MW_WORD_TREE.addWord(kw);
+        MW_KEYWORD_MAP.put(kw, mw);
     }
 
     // ─── 中间件检测：字段类型名/注解名 → 虚拟节点定义 ────────────────────────
@@ -441,12 +516,15 @@ public class JavaSpringParser implements LanguageParser {
     public ProjectAnalysisResult parse(String projectDir) {
         log.info("Starting Spring Boot AST analysis: {}", projectDir);
 
-        // 検测子模块：返回 Map<子模块根目录, 模块名>
+        // 检测子模块：返回 Map<子模块根目录, 模块名>
         Map<Path, String> moduleMap = detectModules(Paths.get(projectDir));
         boolean isMultiModule = moduleMap.size() > 1;
         if (isMultiModule) {
             log.info("Multi-module project detected, modules: {}", moduleMap.values());
         }
+
+        TechStackInfo techStackInfo = analyzeTechStack(Paths.get(projectDir), moduleMap);
+        log.info("Detected Tech Stack: {}", techStackInfo.toMap(MIDDLEWARE_DEFS));
 
         JavaParser javaParser = initializeSymbolSolver(projectDir, moduleMap);
         List<ArchNode> rawNodes = new ArrayList<>();
@@ -482,7 +560,7 @@ public class JavaSpringParser implements LanguageParser {
                             }
                             rawNodes.add(node);
                             rawRelationships.addAll(
-                                analyzeRelationships(clazz, fullName, cu, usedMiddlewareIds));
+                                analyzeRelationships(clazz, fullName, cu, usedMiddlewareIds, techStackInfo));
                         }
                     });
 
@@ -494,9 +572,105 @@ public class JavaSpringParser implements LanguageParser {
             log.error("IO Error scanning project dir", e);
         }
 
-        return buildResult(rawNodes, rawRelationships, usedMiddlewareIds,
+        ProjectAnalysisResult result = buildResult(rawNodes, rawRelationships, usedMiddlewareIds,
                 isMultiModule ? new ArrayList<>(moduleMap.values()) : null);
+        result.setTechStack(techStackInfo.toMap(MIDDLEWARE_DEFS));
+        return result;
     }
+    private static class TechStackInfo {
+        String springBootVersion = "Unknown";
+        Set<String> databases = new LinkedHashSet<>();
+        Set<String> activeMiddlewareIds = new LinkedHashSet<>();
+        
+        Map<String, Object> toMap(Map<String, MiddlewareDef> defs) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("springBootVersion", springBootVersion);
+            if (!databases.isEmpty()) map.put("database", databases);
+            if (!activeMiddlewareIds.isEmpty()) {
+                List<String> mwNames = activeMiddlewareIds.stream()
+                        .map(id -> defs.get(id).name)
+                        .distinct()
+                        .collect(Collectors.toList());
+                map.put("middlewares", mwNames);
+            }
+            return map;
+        }
+    }
+
+    private TechStackInfo analyzeTechStack(Path rootPath, Map<Path, String> moduleMap) {
+        TechStackInfo info = new TechStackInfo();
+        MavenXpp3Reader reader = new MavenXpp3Reader();
+
+        // 收集所有的 artifactId 以便精确判断
+        Set<String> allArtifactIds = new HashSet<>();
+
+        // 1. 读取所有的 pom.xml 或 build.gradle
+        for (Path modulePath : moduleMap.keySet()) {
+            Path pomPath = modulePath.resolve("pom.xml");
+            if (Files.exists(pomPath)) {
+                try (java.io.FileReader fileReader = new java.io.FileReader(pomPath.toFile())) {
+                    Model model = reader.read(fileReader);
+                    
+                    // 尝试从根 pom.xml 提取 Spring Boot 版本
+                    if (modulePath.equals(rootPath) && model.getParent() != null 
+                            && "spring-boot-starter-parent".equals(model.getParent().getArtifactId())) {
+                        info.springBootVersion = model.getParent().getVersion();
+                    }
+
+                    // 收集所有 dependencies
+                    if (model.getDependencies() != null) {
+                        for (Dependency dep : model.getDependencies()) {
+                            allArtifactIds.add(dep.getArtifactId());
+                        }
+                    }
+                    
+                    // 收集 dependencyManagement 里的 dependencies
+                    if (model.getDependencyManagement() != null && model.getDependencyManagement().getDependencies() != null) {
+                        for (Dependency dep : model.getDependencyManagement().getDependencies()) {
+                            allArtifactIds.add(dep.getArtifactId());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to parse pom.xml object: {}", pomPath, e);
+                }
+            }
+            
+            // 为了兼容可能存在的 build.gradle，对其进行简单的文字匹配提取内容
+            for (String buildFile : List.of("build.gradle", "build.gradle.kts")) {
+                Path bp = modulePath.resolve(buildFile);
+                if (Files.exists(bp)) {
+                    try {
+                        String content = Files.readString(bp).toLowerCase();
+                        if (content.contains("mysql")) allArtifactIds.add("mysql-connector-j");
+                        if (content.contains("postgresql")) allArtifactIds.add("postgresql");
+                        if (content.contains("redis")) allArtifactIds.add("spring-boot-starter-data-redis");
+                        if (content.contains("kafka")) allArtifactIds.add("spring-kafka");
+                    } catch (IOException e) {
+                        log.warn("Failed to read build file: {}", bp);
+                    }
+                }
+            }
+        }
+        
+        // 2 & 3. 拼接所有依赖名进行一趟词汇树扫描
+        String combinedArtifactNames = String.join(" ", allArtifactIds).toLowerCase();
+
+        List<String> dbMatches = DB_WORD_TREE.matchAll(combinedArtifactNames, -1, false, false);
+        for (String match : dbMatches) {
+            info.databases.add(DB_KEYWORD_MAP.get(match));
+        }
+
+        List<String> mwMatches = MW_WORD_TREE.matchAll(combinedArtifactNames, -1, false, false);
+        for (String match : mwMatches) {
+            info.activeMiddlewareIds.add(MW_KEYWORD_MAP.get(match));
+        }
+
+        // generic http client is always available if any spring web is present, but lets just add it optionally
+        info.activeMiddlewareIds.add("middleware:httpclient"); 
+
+        return info;
+    }
+
 
     /**
      * 检测子模块目录。
@@ -610,7 +784,8 @@ public class JavaSpringParser implements LanguageParser {
 
     private List<ArchRelationship> analyzeRelationships(ClassOrInterfaceDeclaration clazz,
                                                           String sourceId, CompilationUnit cu,
-                                                          Set<String> usedMiddlewareIds) {
+                                                          Set<String> usedMiddlewareIds,
+                                                          TechStackInfo techStackInfo) {
         List<ArchRelationship> rels = new ArrayList<>();
 
         // 1. 继承关系
@@ -626,9 +801,9 @@ public class JavaSpringParser implements LanguageParser {
             String fieldTypeName = field.getElementType().isClassOrInterfaceType()
                     ? field.getElementType().asClassOrInterfaceType().getNameAsString() : "";
 
-            // 3a. 优先检测是否是中间件客户端类型（无需注解）
+            // 3a. 优先检测是否是中间件客户端类型（无需注解），并且 pom.xml 包含对应的依赖
             String middlewareId = MIDDLEWARE_FIELD_TRIGGERS.get(fieldTypeName);
-            if (middlewareId != null) {
+            if (middlewareId != null && techStackInfo.activeMiddlewareIds.contains(middlewareId)) {
                 usedMiddlewareIds.add(middlewareId);
                 addRel(rels, sourceId, middlewareId, "USES");
                 return; // 不再作为普通 DEPENDS_ON 关系处理
@@ -663,7 +838,7 @@ public class JavaSpringParser implements LanguageParser {
 
         allAnnotations.forEach(ann -> {
             String mwId = MIDDLEWARE_ANNOTATION_TRIGGERS.get(ann);
-            if (mwId != null) {
+            if (mwId != null && techStackInfo.activeMiddlewareIds.contains(mwId)) {
                 usedMiddlewareIds.add(mwId);
                 addRel(rels, sourceId, mwId, "USES");
             }

@@ -48,7 +48,7 @@ public class AiCircuitBreakerAspect {
         
         // 2. 如果状态是 "false" 或 "off"，直接抛出异常，阻止后续逻辑执行
         if ("false".equalsIgnoreCase(status) || "off".equalsIgnoreCase(status)) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI服务维护中");
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI服务维护中，请使用自定义llm");
         }
         // 全局ai是启用的情况下，校验某个用户是否启用ai功能
         String userKey = USER_AI_SWITCH_KEY + loginUser.getId().toString();

@@ -3,12 +3,14 @@ package com.wfh.drawio.core.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 完整的项目分析结果，直接传给 LLM 生成架构图
  * <p>
  * framework 和 layers 字段为 LLM 提供必要的上下文，
  * 让 LLM 知道：这是什么框架、有哪几个架构层、应该如何分区布局。
+ * techStack 字段提供从 pom.xml 解析出的技术栈摘要，帮助 LLM 生成更精准的架构描述。
  * @author fenghuanwang
  */
 @Data
@@ -20,6 +22,13 @@ public class ProjectAnalysisResult {
      * 供 LLM Prompt 使用，无需在 Prompt 里重复声明框架
      */
     private String framework = "Spring Boot";
+
+    /**
+     * 技术栈摘要（从 pom.xml 解析，仅包含对架构理解有意义的关键信息）
+     * 例如：{"springBootVersion":"3.2.0","database":["MySQL","Redis"],"middlewares":["Kafka","MinIO"]}
+     * LLM 根据此字段理解项目技术选型，生成带技术标注的架构图
+     */
+    private Map<String, Object> techStack;
 
     /**
      * 子模块列表（多模块项目才有值，单模块为 null 不序列化）
