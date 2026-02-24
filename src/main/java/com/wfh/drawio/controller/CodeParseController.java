@@ -50,7 +50,7 @@ public class CodeParseController {
      * @param file ZIP file containing Spring Boot source code
      * @return AI-optimized structured JSON with architecture information
      */
-    @PostMapping("/springboot/upload")
+    @PostMapping("/springboot/upload/simple")
     @Operation(summary = "Upload and Analyze Spring Boot Project", 
                description = "Upload a ZIP file containing Spring Boot source code and get AI-ready architecture analysis")
     public BaseResponse<ProjectAnalysisResult> uploadAndAnalyze(@RequestParam("file") MultipartFile file) {
@@ -85,7 +85,7 @@ public class CodeParseController {
      * @param file ZIP file containing Spring Boot source code
      * @return Architecture graph for AI diagram generation
      */
-    @PostMapping("/springboot/upload/simple")
+    @PostMapping("/springboot/upload")
     @Operation(summary = "Upload and Analyze (Architecture Only)", 
                description = "Returns architecture graph (nodes and links) for diagram generation")
     public BaseResponse<SimplifiedProjectDTO> uploadAndAnalyzeSimple(@RequestParam("file") MultipartFile file) {

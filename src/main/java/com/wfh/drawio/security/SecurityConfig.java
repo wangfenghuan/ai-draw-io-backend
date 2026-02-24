@@ -89,7 +89,7 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .rememberMe(remember -> remember
                         .userDetailsService(userDetailsService)
-                        .tokenValiditySeconds(60 * 60 * 24 * 7)
+                        .tokenValiditySeconds(60 * 60 * 24 * 30)
                 )
                 // OAuth2登录配置
                 .oauth2Login(oauth2 -> oauth2

@@ -130,8 +130,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 使用 Hutool 生成 JWT Token
         Map<String, Object> payload = new HashMap<>();
         payload.put("userId", user.getId());
-        // 7天过期
-        payload.put(JWTPayload.EXPIRES_AT, System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7);
+        // 30天过期
+        payload.put(JWTPayload.EXPIRES_AT, System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 30);
         
         String token = JWTUtil.createToken(payload, "wfh-drawio-jwt-secret".getBytes());
         loginUserVO.setToken(token);

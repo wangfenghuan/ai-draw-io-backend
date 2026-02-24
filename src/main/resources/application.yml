@@ -6,7 +6,7 @@ spring:
   # Spring Session 配置
   session:
     store-type: redis  # 使用 Redis 存储 Session
-    timeout: 604800     # Session 过期时间: 7天 (单位:秒)
+    timeout: 2592000     # Session 过期时间: 30天 (单位:秒)
     redis:
       namespace: spring:session:drawio  # Redis key 的命名空间
   # Redis 配置

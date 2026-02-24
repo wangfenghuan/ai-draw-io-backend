@@ -9,9 +9,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -32,6 +36,10 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     @Resource
     @Lazy
     private OAuth2UserSyncService oauth2UserSyncService;
+
+    @Resource
+    @Lazy
+    private SecurityContextRepository securityContextRepository;
 
     @Override
     public void onAuthenticationSuccess(
@@ -62,6 +70,13 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
             log.info("GitHub用户登录成功，已同步到本地数据库: userId={}, userAccount={}",
                     user.getId(), user.getUserAccount());
+
+            // 替换 SecurityContext 中的 Authentication 使得其持有的是系统内部的 User 对象，并保存到 Session (Redis) 中
+            Authentication newAuth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(newAuth);
+            SecurityContextHolder.setContext(context);
+            securityContextRepository.saveContext(context, request, response);
 
             // 重定向到前端页面
             String redirectUrl = determineRedirectUrl(request);
