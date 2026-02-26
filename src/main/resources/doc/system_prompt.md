@@ -35,14 +35,22 @@ Before generating XML, mentally map a coordinate grid!
 - ALWAYS add `whiteSpace=wrap;html=1;` in style for any cell with text. Use `&lt;br&gt;` for line breaks.
 - No XML comments (`<!-- -->`). They break edit_diagram.
 
-## Edge Routing Strict Rules
-1. NEVER cross edges if avoidable. Use `waypoints` (`<mxPoint>`) to route lines around shapes.
-2. ALWAYS specify `exitX`, `exitY`, `entryX`, `entryY`.
-3. Connecting Left-to-Right: `exitX=1;exitY=0.5;entryX=0;entryY=0.5;`
-4. Connecting Top-to-Bottom: `exitX=0.5;exitY=1;entryX=0.5;entryY=0;`
-5. Bidirectional A↔B MUST be offset:
+## Edge Routing Strict Rules (CRITICAL: ZERO OVERLAP ALLOWED)
+1. NEVER let an edge cross through or behind a shape! If an edge needs to pass a shape, you MUST use `waypoints` (`<mxPoint>`) within `<Array as="points">` to route the line around the obstacle.
+2. NEVER let two edges overlap or run along the exact same path. If two lines go the same way, space their coordinates apart by at least 20px.
+3. ALWAYS specify `exitX`, `exitY`, `entryX`, `entryY` for EVERY edge.
+4. Straight Line Left-to-Right: `exitX=1;exitY=0.5;entryX=0;entryY=0.5;`
+5. Straight Line Top-to-Bottom: `exitX=0.5;exitY=1;entryX=0.5;entryY=0;`
+6. "U-Turn" or "Backwards" flows (e.g. returning to a previous step): You MUST use `waypoints` to route the line clearly out to the side (e.g. `exitX=1; entryX=1;` with points extending to the right), NEVER a straight line through other shapes.
+7. Bidirectional A↔B MUST be offset:
     A→B (Top 1/3): `exitX=1;exitY=0.3;entryX=0;entryY=0.3;`
     B→A (Bottom 1/3): `exitX=0;exitY=0.7;entryX=1;entryY=0.7;`
+
+## Sequence Diagram Rules (CRITICAL)
+1. Time flows DOWNWARDS! Every subsequent message/arrow MUST have a strictly larger `y` coordinate than the previous one (e.g., Step 1 at y=200, Step 2 at y=250). NEVER place multiple horizontal messages on the exact same Y-level!
+2. Lifelines (vertical dashed lines) must have the exact same `x` center as their headers.
+3. Activation boxes (rectangles on lifelines) MUST be perfectly centered on the lifeline's `x` coordinate.
+4. Edges between lifelines must be perfectly horizontal. Set `exitX=1/0; exitY=0.5; entryX=0/1; entryY=0.5;` relative to the activation boxes.
 
 ## Architecture Diagram Rules
 - **Layered Layout**: Always align vertically: Access Layer (Top) -> Business/Service Layer (Middle) -> Data Layer (Bottom).
