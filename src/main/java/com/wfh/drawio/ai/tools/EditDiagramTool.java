@@ -35,10 +35,10 @@ public class EditDiagramTool {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Tool(name = "edit_diagram", description = """
-        Edit the current diagram with targeted operations. Input: JSON string.
+        Edit the current diagram with targeted operations. 
         Operations: update (replace cell), add (new cell), delete (remove cell by id).
-        Format: {"operations":[{"type":"update|add|delete","cell_id":"id","new_xml":"complete mxCell"}]}
-        - update/add: provide full mxCell element; quotes inside new_xml MUST be escaped as \\\\".
+        Format: {"operations":[{"type":"update","cell_id":"3","new_xml":"<mxCell id=\\"3\\".../>"}]}
+        - update/add: provide FULL mxCell element; quotes inside new_xml MUST be escaped as \\\\".
         - delete: only cell_id needed.
         - If cell_id is uncertain, use display_diagram to regenerate instead.
         Do NOT wrap in markdown code blocks.

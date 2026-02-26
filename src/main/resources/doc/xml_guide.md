@@ -1,80 +1,34 @@
-# Draw.io XML Quick Reference
+# Draw.io XML Syntax & Best Practices
 
-> **NOTE:** You only need to generate `mxCell` elements. Wrapper tags (`mxfile`, `mxGraphModel`, `root`) and root cells (id="0", id="1") are added automatically.
+> **CRITICAL**: You only need to generate `mxCell` elements. Wrapper tags (`mxfile`, `mxGraphModel`, `root`) and root cells (id="0", id="1") are added automatically.
 
-## mxCell — Shape (vertex)
-```xml
-<mxCell id="2" value="Label" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-  <mxGeometry x="100" y="100" width="120" height="60" as="geometry"/>
-</mxCell>
-```
+## Core Syntax Rules
+1. **Never Nest**: All `mxCell` are siblings. Do not put an `mxCell` inside another (exception for grouped elements visually, but XML-wise they remain siblings with parent references).
+2. **IDs & Parents**: IDs start from `"2"`. Every cell needs a unique `id` and a `parent` attribute. `parent="1"` is for top-level shapes. `parent="<container-id>"` is for elements inside a group or swimlane.
+3. **Text Nodes**: Text cells **must** include `whiteSpace=wrap;html=1;` in style.
+4. **Line Breaks**: Use `&lt;br&gt;` for newlines. Never use `\n`.
+5. **XML Constraints**: **No XML comments** (`<!-- -->`). They break downstream ID matching.
 
-## mxCell — Connector (edge)
-```xml
-<mxCell id="3" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=0;entryY=0.5;endArrow=classic;html=1;" edge="1" parent="1" source="2" target="4">
-  <mxGeometry relative="1" as="geometry"/>
-</mxCell>
-```
+## Shape Geometry (CRITICAL Constraint)
+To avoid overlapping nodes (occlusion), you MUST calculate realistic `x` and `y` coordinates for every shape BEFORE outputting it.
+- Space standard shapes by at least **150px horizontally** and **100px vertically**.
+- Typical shape dimensions: `width="120" height="60"`.
+- Container/Swimlane dimensions: `width="400" height="300"`.
+- If an architecture diagram has 3 vertical layers, their `y` coordinates should roughly be: `y=100` (Layer 1), `y=300` (Layer 2), `y=500` (Layer 3).
 
-## Key Rules
-1. All `mxCell` are siblings — **never nest** one inside another.
-2. IDs start from `"2"`. Every cell needs a unique `id` and a `parent` attribute.
-3. `parent="1"` for top-level shapes; `parent="<container-id>"` for grouped/swimlane children.
-4. Text cells **must** include `whiteSpace=wrap;html=1;` in style.
-5. Line breaks: use `&lt;br&gt;` (e.g. `value="Line1&lt;br&gt;Line2"`). Never use `\n`.
-6. Escape in values: `&lt;` `&gt;` `&amp;` `&quot;`.
-7. **No XML comments** (`<!-- -->`). They break edit_diagram ID matching.
+## Edge Routing & Ports (CRITICAL Constraint)
+Never draw diagonal intersecting lines causing a chaotic web.
+- Always use modern routing over simplistic lines: `edgeStyle=orthogonalEdgeStyle;rounded=1;endArrow=blockThin;endFill=1;`
+- **Port Explicitly**: Always add `exitX, exitY, entryX, entryY` constraints!
+  - `exitX=1;exitY=0.5;entryX=0;entryY=0.5;` is perfect for a strict left-to-right connection.
+  - `exitX=0.5;exitY=1;entryX=0.5;entryY=0;` is perfect for a strict top-to-bottom connection.
+- **Waypoints**: Use `<Array as="points">` with `<mxPoint x=".." y=".."/>` to route an edge completely around an obstacle shape to prevent the line from crossing through the shape.
 
-## Common Shapes
-| Shape | Style key |
-|-------|-----------|
-| Rectangle | `rounded=0;` or `rounded=1;` |
-| Ellipse/Circle | `ellipse;` |
-| Diamond | `rhombus;` |
-| Cylinder | `shape=cylinder;` |
-| Cloud | `shape=cloud;` |
-| Swimlane | `swimlane;startSize=30;` |
-
-## Edge Styles
-```
-endArrow=classic|block|open|none
-startArrow=none|classic
-edgeStyle=orthogonalEdgeStyle|elbowEdgeStyle|entityRelationEdgeStyle
-curved=1
-```
-
-## Swimlane Pattern
-```xml
-<mxCell id="lane1" value="Frontend" style="swimlane;startSize=30;" vertex="1" parent="1">
-  <mxGeometry x="40" y="40" width="200" height="300" as="geometry"/>
-</mxCell>
-<!-- Step inside lane (parent = lane id) -->
-<mxCell id="s1" value="Step 1" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="lane1">
-  <mxGeometry x="20" y="60" width="160" height="40" as="geometry"/>
-</mxCell>
-<!-- Edge is a sibling under root (parent="1"), NOT inside the lane -->
-<mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;html=1;" edge="1" parent="1" source="s1" target="s2">
-  <mxGeometry relative="1" as="geometry"/>
-</mxCell>
-```
-
-## Edge with Waypoints (obstacle avoidance)
-```xml
-<mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;entryX=0.5;entryY=0;endArrow=classic;html=1;" edge="1" parent="1" source="a" target="b">
-  <mxGeometry relative="1" as="geometry">
-    <Array as="points">
-      <mxPoint x="300" y="200"/>
-    </Array>
-  </mxGeometry>
-</mxCell>
-```
-
-## Group / Container
-```xml
-<mxCell id="10" value="Group" style="group;" vertex="1" connectable="0" parent="1">
-  <mxGeometry x="200" y="200" width="200" height="100" as="geometry"/>
-</mxCell>
-<mxCell id="11" value="Child" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="10">
-  <mxGeometry width="90" height="40" as="geometry"/>
-</mxCell>
-```
+## Beautiful Aesthetics & Colors
+Use pastel and modern flat colors to make architecture diagrams pop!
+- **Base Shape Options**: `rounded=1;shadow=0;glass=0;sketch=0;`
+- **Blue (Business Services)**: `fillColor=#DAE8FC;strokeColor=#6c8ebf;`
+- **Green (Databases / Storage)**: `fillColor=#D5E8D4;strokeColor=#82b366;`
+- **Orange (MQ / Cache / Async)**: `fillColor=#FFE6CC;strokeColor=#d79b00;`
+- **Purple (Gateway / Proxies)**: `fillColor=#E1D5E7;strokeColor=#9673a6;`
+- **Groups / VPCs (Containers)**: `fillColor=#F5F5F5;strokeColor=#B3B3B3;dashed=1;`

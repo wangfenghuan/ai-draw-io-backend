@@ -29,10 +29,9 @@ public class AppendDiagramTool {
     }
 
     @Tool(name = "append_diagram", description = """
-        Continue generating mxCell elements when display_diagram was truncated.
-        ONLY call after truncation. Output raw mxCell fragments (no wrapper tags).
-        Continue EXACTLY where the previous output stopped. Repeat if still truncated.
-        Do NOT wrap in markdown code blocks.
+        ONLY use when previous display_diagram or append_diagram output was TRUNCATED due to length limits.
+        Continue generating mxCell elements exactly where the previous output stopped. 
+        Output raw mxCell fragments (no wrapper tags). Do NOT wrap in markdown code blocks.
         """)
     public ToolResult<String, String> appendDiagram(
             @ToolParam(description = "The XML fragment to append (ONLY mxCell elements)")

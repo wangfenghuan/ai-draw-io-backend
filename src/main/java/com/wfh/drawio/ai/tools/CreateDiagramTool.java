@@ -29,10 +29,14 @@ public class CreateDiagramTool {
     }
 
     @Tool(name = "display_diagram", description = """
-        Create or fully replace the diagram. Output ONLY mxCell elements (no wrapper tags, no root cells id=0/1).
+        Create or fully replace the diagram. Output ONLY mxCell elements.
+        CRITICAL CHECKLIST BEFORE CALLING:
+        1. Did I calculate x/y coordinates to guarantee NO OCCLUSION/OVERLAP?
+        2. Are there at least 150px gaps between shapes?
+        3. Did I set exitX/Y and entryX/Y on ALL edges to avoid line intersections?
         Rules: siblings only (never nested), IDs start from "2", every cell needs parent attr, \
         use whiteSpace=wrap;html=1; for text, &lt;br&gt; for line breaks, no XML comments.
-        For AWS diagrams use AWS 2025 icons. Do NOT wrap output in markdown code blocks.
+        Do NOT wrap output in markdown code blocks.
         """)
     public ToolResult<String, String> displayDiagram(
             @ToolParam(description = "The generated XML string containing ONLY mxCell elements")
