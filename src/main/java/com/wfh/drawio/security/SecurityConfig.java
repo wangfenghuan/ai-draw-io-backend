@@ -6,12 +6,9 @@ import com.wfh.drawio.security.handler.LoginFailureHandler;
 import com.wfh.drawio.security.handler.LoginSuccessHandler;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -78,7 +75,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/user/createCaptcha").permitAll()
                         .requestMatchers("/diagram/getDiagrams").permitAll()
-                        .requestMatchers("/material/list/page/vo", "/announcement/list/page/vo", "/api/announcement/list/page/vo").permitAll()
+                        .requestMatchers("/material/list/page/vo","/material/get/vo", "/api/material/get/vo", "/announcement/list/page/vo", "/api/announcement/list/page/vo").permitAll()
                         .requestMatchers("/internal/save", "/internal/auth").permitAll()
                         .anyRequest().authenticated()
                 )

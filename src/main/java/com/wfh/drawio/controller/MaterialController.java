@@ -11,7 +11,9 @@ import com.wfh.drawio.model.dto.material.MaterialAddRequest;
 import com.wfh.drawio.model.dto.material.MaterialQueryRequest;
 import com.wfh.drawio.model.dto.material.MaterialUpdateRequest;
 import com.wfh.drawio.model.entity.Material;
+import com.wfh.drawio.model.entity.User;
 import com.wfh.drawio.model.vo.MaterialVO;
+import com.wfh.drawio.model.vo.UserVO;
 import com.wfh.drawio.service.MaterialService;
 import com.wfh.drawio.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,9 +63,8 @@ public class MaterialController {
         BeanUtils.copyProperties(materialAddRequest, material);
 
         // 从请求中获取当前登录用户ID
-        com.wfh.drawio.model.entity.User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getLoginUser(request);
         material.setUserId(loginUser.getId());
-
         boolean result = materialService.save(material);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(material.getId());
@@ -138,14 +139,16 @@ public class MaterialController {
      */
     @GetMapping("/get/vo")
     @Operation(summary = "根据 id 获取素材封装类")
-    @PreAuthorize("hasAuthority('admin')")
     public BaseResponse<MaterialVO> getMaterialVOById(long id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         Material material = materialService.getById(id);
         ThrowUtils.throwIf(material == null, ErrorCode.NOT_FOUND_ERROR);
+        User loginUser = userService.getById(material.getUserId());
+        UserVO userVO = userService.getUserVO(loginUser);
         MaterialVO materialVO = materialService.getMaterialVO(material);
+        materialVO.setUserVO(userVO);
         return ResultUtils.success(materialVO);
     }
 

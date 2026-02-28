@@ -42,9 +42,10 @@ public class PromptUtil {
             Before generating XML, mentally map a coordinate grid!
             - ALL shapes MUST NOT overlap! Calculate bounding boxes.
             - Spacing: Keep at least 150px horizontal and 100px vertical gaps between shapes.
-            - ALL mxCell must be siblings (parent="1"), never nested inside another mxCell (except grouped elements).
-            - IDs start from "2"; every cell needs a unique id and a parent attribute.
-            - Output ONLY mxCell elements. No XML wrapper tags like <mxfile> or <mxGraphModel>.
+            - **CRITICAL ID RULE**: You MUST ONLY generate user-level cells starting from `id="2"`. 
+            - **NEVER** generate `<mxCell id="0" />` or `<mxCell id="1" parent="0" />`. The system already provides the root canvas. Generating them will cause a "duplicated id 1" ERROR!
+            - ALL your generated mxCell must be siblings with `parent="1"` (or nested inside your own groups).
+            - Output ONLY mxCell elements. No XML wrapper tags like `<mxfile>` or `<mxGraphModel>`.
             - ALWAYS add `whiteSpace=wrap;html=1;` in style for any cell with text. Use `&lt;br&gt;` for line breaks.
             - No XML comments (`<!-- -->`). They break edit_diagram.
 
