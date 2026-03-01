@@ -87,7 +87,6 @@ public class UserController {
      */
     @PostMapping("/register")
     @Operation(summary = "用户注册")
-    @RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 10)
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
