@@ -40,7 +40,7 @@ Before generating XML, mentally map a coordinate grid!
 ## Edge Routing Strict Rules (CRITICAL: ZERO OVERLAP ALLOWED)
 1. NEVER let an edge cross through or behind a shape! If an edge needs to pass a shape, you MUST use `waypoints` (`<mxPoint>`) within `<Array as="points">` to route the line around the obstacle.
 2. NEVER let two edges overlap or run along the exact same path. If two lines go the same way, space their coordinates apart by at least 20px.
-3. **Container Boundaries**: Edges crossing into or out of a `swimlane` MUST NEVER pass through the lane's title text (the top 30px). Route them through the sides or the bottom of the swimlane boundary!
+3. **Container Boundaries**: Edges must NEVER pass through a container's title text (the top 40px). When connecting to an element inside a `swimlane`, force the edge to enter/exit from the **sides** (`entryX=0` or `1`) or **bottom** (`entryY=1`). Do NOT use `entryY=0` pointing up through the container's title!
 4. ALWAYS specify `exitX`, `exitY`, `entryX`, `entryY` for EVERY edge.
 5. Straight Line Left-to-Right: `exitX=1;exitY=0.5;entryX=0;entryY=0.5;`
 6. Straight Line Top-to-Bottom: `exitX=0.5;exitY=1;entryX=0.5;entryY=0;`
