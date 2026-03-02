@@ -16,4 +16,6 @@ public interface RedisPrefixConstant {
     String USER_AI_SWITCH_KEY = "user:ai:enabled:";
 
     String GLOBAL_AI_TOKEN_KEY = "system:ai:token";
+
+    String USER_AI_CALL_COUNT = "user:ai:call:count:";
 }

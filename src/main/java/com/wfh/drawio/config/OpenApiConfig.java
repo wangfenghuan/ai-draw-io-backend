@@ -16,7 +16,9 @@ public class OpenApiConfig {
     // 静态代码块：在 SpringDoc 初始化前执行
     static {
         // 核心代码：将 Long 类型映射为 String 类型
-        SpringDocUtils.getConfig().replaceWithClass(Long.class, String.class);
+        SpringDocUtils.getConfig()
+                .replaceWithClass(Long.class, String.class)
+                .replaceWithClass(long.class, String.class);
     }
 
     @Bean

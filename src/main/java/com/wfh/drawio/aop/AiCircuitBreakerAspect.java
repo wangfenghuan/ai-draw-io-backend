@@ -56,6 +56,23 @@ public class AiCircuitBreakerAspect {
         if ("false".equalsIgnoreCase(userStatus) || "off".equalsIgnoreCase(userStatus)){
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "您的AI服务被禁用，请联系管理员");
         }
+
+        // AI服务没有被全局禁用，而且单个用户的AI服务也没有被禁用，就判断当前用户调用AI的此时是否达到了限制
+        String callCountKey = USER_AI_CALL_COUNT + loginUser.getId().toString();
+        Boolean hasKey = stringRedisTemplate.hasKey(callCountKey);
+        // 使用 Boolean.FALSE.equals 防止自动拆箱引起的 NullPointerException
+        if (Boolean.FALSE.equals(hasKey) || hasKey == null) {
+            stringRedisTemplate.opsForValue().set(callCountKey, "5");
+        }
+        
+        // 获取当前剩余次数
+        String count = stringRedisTemplate.opsForValue().get(callCountKey);
+        // 使用 <= 0 判断，防止特殊情况下出现负数导致限制失效
+        if (count == null || Integer.parseInt(count) <= 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "您当日的AI调用次数已经达到上限，请明日再来");
+        }
+        // 没有达到上限，就将该用户的调用次数减一
+        stringRedisTemplate.opsForValue().decrement(callCountKey);
         // 3. 在这里顺便做全局 Token 消耗监控(因为是流式响应的，所以统计本次ai回复的时长反应token消耗)
         StopWatch stopWatch = new StopWatch();
         // 开始计时

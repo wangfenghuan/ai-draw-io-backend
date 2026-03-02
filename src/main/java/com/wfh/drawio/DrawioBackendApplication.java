@@ -11,7 +11,7 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
  */
 @SpringBootApplication
 @MapperScan("com.wfh.drawio.mapper")
-@EnableRedisHttpSession
+@EnableRedisHttpSession(maxInactiveIntervalInSeconds = 2592000) // 30天 (30 * 24 * 60 * 60)
 @EnableScheduling
 public class DrawioBackendApplication {
 

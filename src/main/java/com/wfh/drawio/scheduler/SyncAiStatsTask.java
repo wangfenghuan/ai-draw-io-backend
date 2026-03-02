@@ -9,7 +9,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
+
 import static com.wfh.drawio.constant.RedisPrefixConstant.GLOBAL_AI_TOKEN_KEY;
+import static com.wfh.drawio.constant.RedisPrefixConstant.USER_AI_CALL_COUNT;
 
 /**
  * AI 相关统计数据定时任务
@@ -35,7 +38,7 @@ public class SyncAiStatsTask {
     }
 
     /**
-     * 每天0点执行，同步前一天Redis的AI使用数据到MySQL
+     * 每天0点执行，同步前一天Redis的AI使用数据到MySQL+重置用户调用AI的次数
      */
     @Scheduled(cron = "0 0 0 * * ?")
     public void syncAiUsageToDatabase() {
@@ -73,6 +76,19 @@ public class SyncAiStatsTask {
             // 如果键不存在或为空，也设置为0，确保第二天有个干净的开始
             stringRedisTemplate.opsForValue().set(GLOBAL_AI_TOKEN_KEY, "0");
             log.info("Redis中未找到AI使用数据，已将计数器设置为0。");
+        }
+
+        // 5. 每天凌晨重置所有用户的AI调用次数（将所有记录删除，切面中发现没有Key会自动初始化为5次）
+        try {
+            Set<String> keys = stringRedisTemplate.keys(USER_AI_CALL_COUNT + "*");
+            if (keys != null && !keys.isEmpty()) {
+                stringRedisTemplate.delete(keys);
+                log.info("成功清理并重置了 {} 个用户的AI调用次数记录。", keys.size());
+            } else {
+                log.info("今日暂无需要重置的用户AI调用次数记录。");
+            }
+        } catch (Exception e) {
+            log.error("重置用户AI调用次数失败：", e);
         }
     }
 }
