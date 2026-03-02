@@ -364,10 +364,12 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
                 }
 
                 // 额度校验（在事务内进行，确保并发安全）
-                if (space.getTotalCount() >= space.getMaxCount()) {
+                long currentTotalCount = space.getTotalCount() != null ? space.getTotalCount() : 0L;
+                long currentTotalSize = space.getTotalSize() != null ? space.getTotalSize() : 0L;
+                if (currentTotalCount >= space.getMaxCount()) {
                     throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间条数不足");
                 }
-                if (space.getTotalSize() + sizeDelta > space.getMaxSize()) {
+                if (currentTotalSize + sizeDelta > space.getMaxSize()) {
                     throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间大小不足");
                 }
 
@@ -385,11 +387,10 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
                 boolean result = this.updateById(updateDiagram);
                 ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
 
-                // 更新空间额度
+                // 更新空间额度 (仅更新大小，不增加数量，因为addDiagram已增加数量)
                 boolean update = spaceService.lambdaUpdate()
                         .eq(Space::getId, spaceId)
-                        .setSql("totalSize = totalSize + " + sizeDelta)
-                        .setSql("totalCount = totalCount + 1")
+                        .setSql("totalSize = COALESCE(totalSize, 0) + " + sizeDelta)
                         .update();
                 ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
             } else {
@@ -436,15 +437,15 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
                 if (picSize > 0) {
                     boolean update = spaceService.lambdaUpdate()
                             .eq(Space::getId, spaceId)
-                            .setSql("totalSize = totalSize - " + picSize)
-                            .setSql("totalCount = totalCount - 1")
+                            .setSql("totalSize = COALESCE(totalSize, 0) - " + picSize)
+                            .setSql("totalCount = COALESCE(totalCount, 0) - 1")
                             .update();
                     ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
                 } else {
                     // 如果picSize为0，只减少count
                     boolean update = spaceService.lambdaUpdate()
                             .eq(Space::getId, spaceId)
-                            .setSql("totalCount = totalCount - 1")
+                            .setSql("totalCount = COALESCE(totalCount, 0) - 1")
                             .update();
                     ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
                 }
@@ -478,7 +479,8 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
 //                }
 
                 // 额度校验
-                if (space.getTotalCount() >= space.getMaxCount()) {
+                long currentTotalCount = space.getTotalCount() != null ? space.getTotalCount() : 0L;
+                if (currentTotalCount >= space.getMaxCount()) {
                     throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间条数不足");
                 }
 
@@ -489,7 +491,7 @@ public class DiagramServiceImpl extends ServiceImpl<DiagramMapper, Diagram> impl
                 // 更新空间额度（只增加count，因为此时还没有上传文件）
                 boolean update = spaceService.lambdaUpdate()
                         .eq(Space::getId, spaceId)
-                        .setSql("totalCount = totalCount + 1")
+                        .setSql("totalCount = COALESCE(totalCount, 0) + 1")
                         .update();
                 ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
             } else {

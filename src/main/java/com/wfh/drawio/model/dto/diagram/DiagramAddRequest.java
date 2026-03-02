@@ -39,6 +39,12 @@ public class DiagramAddRequest implements Serializable {
     @Schema(description = "图片URL", example = "https://example.com/image.png")
     private String pictureUrl;
 
+    /**
+     * 图表类型
+     */
+    @Schema(description = "图表类型", example = "UML类图")
+    private String diagramType;
+
 
     private static final long serialVersionUID = 1L;
 }

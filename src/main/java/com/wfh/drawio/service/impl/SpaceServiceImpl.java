@@ -74,6 +74,8 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         }
         // 填充数据
         this.fillSpaceBySpaceLevel(space);
+        space.setTotalSize(0L);
+        space.setTotalCount(0L);
         Long id = loginUser.getId();
         space.setUserId(id);
         // 权限校验

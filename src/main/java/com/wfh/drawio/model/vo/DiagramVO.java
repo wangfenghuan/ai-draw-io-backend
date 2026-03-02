@@ -86,6 +86,13 @@ public class DiagramVO implements Serializable {
     @Schema(description = "创建用户信息")
     private UserVO userVO;
 
+
+    /**
+     * 图表类型
+     */
+    @Schema(description = "图表类型", example = "UML类图")
+    private String diagramType;
+
     /**
      * 封装类转对象
      *

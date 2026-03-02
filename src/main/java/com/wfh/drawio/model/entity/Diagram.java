@@ -83,6 +83,12 @@ public class Diagram {
     private Long picSize;
 
     /**
+     * 图表类型
+     */
+    @Schema(description = "图表类型", example = "UML类图")
+    private String diagramType;
+
+    /**
      * 创建时间
      */
     @Schema(description = "创建时间", example = "2024-01-01 10:00:00")

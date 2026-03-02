@@ -24,6 +24,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * 图表接口
@@ -650,4 +654,17 @@ public class DiagramController {
         return ResultUtils.success(resultPage);
     }
     // endregion
+
+    /**
+     * 获取图表类型
+     * @return
+     */
+    @GetMapping("/getDiagramTypes")
+    public BaseResponse<Map<String, List<String>>> getDiagramTypes(){
+        Map<String, List<String>> res = new HashMap<>();
+        res.put("通用领域", List.of("流程图", "涌道图", "甘特图"));
+        res.put("软件工程领域", List.of("UML", "架构图", "网络拓扑图", "时序图"));
+        res.put("数据库与信息领域", List.of("ER图"));
+        return ResultUtils.success(res);
+    }
 }

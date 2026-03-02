@@ -18,11 +18,12 @@
         <result property="svgSize" column="svgSize" />
         <result property="pngSize" column="pngSize" />
         <result property="picSize" column="picSize" />
+        <result property="diagramType" column="diagramType" />
         <result property="description" column="description" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,userId,diagramCode,createTime,updateTime,isDelete,pictureUrl,spaceId,svgUrl,svgSize,pngSize,picSize,description,
+        id,userId,diagramCode,createTime,updateTime,isDelete,pictureUrl,spaceId,svgUrl,svgSize,pngSize,picSize,description,diagramType,
         name
     </sql>
 </mapper>
