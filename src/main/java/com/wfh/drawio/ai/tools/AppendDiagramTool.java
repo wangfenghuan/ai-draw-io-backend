@@ -74,6 +74,15 @@ public class AppendDiagramTool {
                 currentXml = "";
             }
 
+            // 提取现有图表中的所有ID，防止AI生成局部重复ID
+            java.util.Set<String> existingIds = DrawioXmlProcessor.extractAllIds(currentXml);
+            // 对片段进行 ID 重复及不合法 ID 洗礼
+            xmlFragment = DrawioXmlProcessor.sanitizeAndRemapIds(xmlFragment, existingIds);
+
+            if (xmlFragment == null || xmlFragment.isEmpty()) {
+                return ToolResult.error("XML fragment became empty after ID sanitization.");
+            }
+
             // 4. 业务规则校验
             if (xmlFragment.contains("UPDATE") || xmlFragment.contains("cell_id") || xmlFragment.contains("operations")) {
                 return ToolResult.error("Invalid fragment: contains edit operation markers");

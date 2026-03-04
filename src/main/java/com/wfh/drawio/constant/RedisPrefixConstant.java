@@ -18,4 +18,6 @@ public interface RedisPrefixConstant {
     String GLOBAL_AI_TOKEN_KEY = "system:ai:token";
 
     String USER_AI_CALL_COUNT = "user:ai:call:count:";
+
+    String USER_AI_BONUS_COUNT = "user:ai:bonus:count:";
 }

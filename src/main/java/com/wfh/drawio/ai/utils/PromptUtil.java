@@ -50,14 +50,14 @@ public class PromptUtil {
             - ALWAYS add `whiteSpace=wrap;html=1;` in style for any cell with text. Use `&lt;br&gt;` for line breaks.
             - No XML comments (`<!-- -->`). They break edit_diagram.
 
-            ## Edge Routing Strict Rules (CRITICAL: ZERO OVERLAP ALLOWED)
-            1. NEVER let an edge cross through or behind a shape! If an edge needs to pass a shape, you MUST use `waypoints` (`<mxPoint>`) within `<Array as="points">` to route the line around the obstacle.
-            2. NEVER let two edges overlap or run along the exact same path. If two lines go the same way, space their coordinates apart by at least 20px.
+            ## Edge Routing Strict Rules (CRITICAL: ZERO SPAGHETTI)
+            1. NEVER let an edge cross through or behind a shape! Use `edgeStyle=orthogonalEdgeStyle;` or `edgeStyle=elbowEdgeStyle;` and rely on draw.io's auto-routing. DO NOT invent manual `waypoints` (`<Array as="points">`) unless absolutely necessary, as your manual coordinates will cause chaotic crossing lines!
+            2. NEVER let two edges overlap. If two lines go the same way, space their ports apart (e.g., `exitY=0.4` and `exitY=0.6`).
             3. **Container Boundaries**: Edges must NEVER pass through a container's title text (the top 40px). When connecting to an element inside a `swimlane`, force the edge to enter/exit from the **sides** (`entryX=0` or `1`) or **bottom** (`entryY=1`). Do NOT use `entryY=0` pointing up through the container's title!
             4. ALWAYS specify `exitX`, `exitY`, `entryX`, `entryY` for EVERY edge.
             5. Straight Line Left-to-Right: `exitX=1;exitY=0.5;entryX=0;entryY=0.5;`
             6. Straight Line Top-to-Bottom: `exitX=0.5;exitY=1;entryX=0.5;entryY=0;`
-            7. "U-Turn" flows (e.g. returning to previous step): Use `waypoints` to route the line clearly out to the side (e.g. `exitX=1; entryX=1;` with points extending to the right).
+            7. "U-Turn" flows (e.g. returning to previous step): Route out to the side (`exitX=1; entryX=1;`).
             8. Bidirectional A↔B MUST be offset:
                A→B (Top 1/3): `exitX=1;exitY=0.3;entryX=0;entryY=0.3;`
                B→A (Bottom 1/3): `exitX=0;exitY=0.7;entryX=1;entryY=0.7;`
@@ -69,8 +69,9 @@ public class PromptUtil {
             4. Edges between lifelines must be perfectly horizontal. Set `exitX=1/0; exitY=0.5; entryX=0/1; entryY=0.5;` relative to the activation boxes.
 
             ## Architecture Diagram Rules
-            - **Layered Layout**: Always align vertically: Access Layer (Top) -> Business/Service Layer (Middle) -> Data Layer (Bottom).
-            - **Grouping**: Use `swimlane` (e.g., `swimlane;startSize=30;`) to group multiple components.
+            ## Architecture Diagram Rules
+            - **Layered/Grid Layout**: Always align vertically or horizontally in a strict Grid (e.g., Column 1 at x=100, Column 2 at x=400, Column 3 at x=700). ONLY connect adjacent columns to prevent spaghetti lines!
+            - **Grouping**: Use `swimlane` (e.g., `swimlane;startSize=30;`) to group multiple components. All child nodes within a swimlane MUST align to form a straight line (share the same center `x` or `y`), do NOT stagger them chaotically!
             - **Container Padding**: Inner components MUST be placed at least 40px away from the top boundary of the `swimlane` so they don't cover the group's title text!
             - Give groups/swimlanes a visually distinct, light transparent background.
 

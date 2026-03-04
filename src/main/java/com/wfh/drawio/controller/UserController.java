@@ -96,6 +96,7 @@ public class UserController {
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
         String userName = userRegisterRequest.getUserName();
+        String inviteCode = userRegisterRequest.getInviteCode();
         // String captchaCode = userRegisterRequest.getCaptchaCode();
         
         // 校验邮箱验证码
@@ -127,7 +128,7 @@ public class UserController {
         if (!userPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
         }
-        long result = userService.userRegister(userAccount, userPassword, checkPassword, userName);
+        long result = userService.userRegister(userAccount, userPassword, checkPassword, userName, inviteCode);
         return ResultUtils.success(result);
     }
 
@@ -261,8 +262,38 @@ public class UserController {
         return ResultUtils.success(true);
     }
 
+    /**
+     * 查询用户剩余的 AI 调用次数（包含基础日限额和奖励额度）
+     *
+     * @param request
+     * @return 包含对应调用次数的 Map
+     */
+    @GetMapping("/get/ai/quota")
+    @Operation(summary = "查询用户的AI调用额度")
+    public BaseResponse<Map<String, Integer>> getUserAiQuota(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        String userId = loginUser.getId().toString();
+        
+        // 1. 获取每日额度
+        String callCountKey = com.wfh.drawio.constant.RedisPrefixConstant.USER_AI_CALL_COUNT + userId;
+        String callCountStr = stringRedisTemplate.opsForValue().get(callCountKey);
+        // 如果没有记录则默认为5次
+        int dailyCount = (callCountStr != null) ? Integer.parseInt(callCountStr) : 5;
+        if (dailyCount < 0) dailyCount = 0;
 
+        // 2. 获取永久奖励额度
+        String bonusCountKey = com.wfh.drawio.constant.RedisPrefixConstant.USER_AI_BONUS_COUNT + userId;
+        String bonusCountStr = stringRedisTemplate.opsForValue().get(bonusCountKey);
+        int bonusCount = (bonusCountStr != null) ? Integer.parseInt(bonusCountStr) : 0;
+        if (bonusCount < 0) bonusCount = 0;
 
+        Map<String, Integer> result = new HashMap<>();
+        result.put("dailyQuota", dailyCount);
+        result.put("bonusQuota", bonusCount);
+        result.put("totalQuota", dailyCount + bonusCount);
+        
+        return ResultUtils.success(result);
+    }
 
     /**
      * 更新账号（修改密码）

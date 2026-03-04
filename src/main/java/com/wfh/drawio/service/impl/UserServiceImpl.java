@@ -47,6 +47,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import com.wfh.drawio.constant.RedisPrefixConstant;
 
 /**
  * 用户服务实现
@@ -71,8 +73,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Resource
     private SecurityContextRepository securityContextRepository;
 
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword, String userName) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword, String userName, String inviteCode) {
         synchronized (userAccount.intern()) {
             // 账户不能重复
             QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -81,16 +86,40 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (count > 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
             }
+            // 校验邀请码是否有效
+            User inviter = null;
+            if (StringUtils.isNotBlank(inviteCode)) {
+                QueryWrapper<User> inviterQuery = new QueryWrapper<>();
+                inviterQuery.eq("inviteCode", inviteCode);
+                inviter = this.baseMapper.selectOne(inviterQuery);
+                if (inviter == null) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "无效的好友邀请码");
+                }
+            }
+
             String encodePassword = passwordEncoder.encode(userPassword);
+            // 为新用户生成专属邀请码 (6位随机字符串)
+            String newUserInviteCode = cn.hutool.core.util.RandomUtil.randomString(6);
+
             // 3. 插入数据
             User user = new User();
             user.setUserAccount(userAccount);
             user.setUserPassword(encodePassword);
             user.setUserName(userName);
+            user.setInviteCode(newUserInviteCode);
             boolean saveResult = this.save(user);
             if (!saveResult) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
             }
+
+            // 4. 发放邀请奖励（存入 Redis）
+            if (inviter != null) {
+                String inviterKey = RedisPrefixConstant.USER_AI_BONUS_COUNT + inviter.getId();
+                String newUserKey = RedisPrefixConstant.USER_AI_BONUS_COUNT + user.getId();
+                stringRedisTemplate.opsForValue().increment(inviterKey, 5);
+                stringRedisTemplate.opsForValue().increment(newUserKey, 5);
+            }
+
             return user.getId();
         }
     }

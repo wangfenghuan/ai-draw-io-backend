@@ -62,6 +62,12 @@ public class UserVO implements Serializable {
     private String userRole;
 
     /**
+     * 专属邀请码
+     */
+    @Schema(description = "专属邀请码", example = "AbC1d2")
+    private String inviteCode;
+
+    /**
      * 用户权限
      */
     private List<SysAuthority> authorities;

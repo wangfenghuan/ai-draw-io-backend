@@ -90,6 +90,12 @@ public class User implements Serializable, UserDetails {
     private String userRole;
 
     /**
+     * 专属邀请码
+     */
+    @Schema(description = "专属邀请码", example = "AbC1d2")
+    private String inviteCode;
+
+    /**
      * 创建时间
      */
     @Schema(description = "创建时间", example = "2024-01-01 10:00:00")

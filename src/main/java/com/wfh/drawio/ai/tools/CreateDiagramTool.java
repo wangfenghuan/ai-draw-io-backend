@@ -73,11 +73,11 @@ public class CreateDiagramTool {
                 return ToolResult.error("Invalid XML content: empty");
             }
             
-            // 2. 强制清洗并防御性移除 AI 误生成的 id="0" 和 id="1" 根节点
-            String sanitizedXml = DrawioXmlProcessor.extractMxCellsOnly(xml);
+            // 2. 强制清洗并重排 AI 生成的 ID，解决重复 ID 问题以及防御性移除误生成的根节点
+            String sanitizedXml = DrawioXmlProcessor.sanitizeAndRemapIds(xml, new java.util.HashSet<>());
             if (sanitizedXml.isEmpty()) {
                 log.error("错误: 清洗后 XML 内容为空 (AI没有生成有效且合法的 mxCell)");
-                return ToolResult.error("Invalid XML content: no valid <mxCell> elements found after filtering root IDs (0 and 1).");
+                return ToolResult.error("Invalid XML content: no valid <mxCell> elements found after sanitization.");
             }
             xml = sanitizedXml;
 

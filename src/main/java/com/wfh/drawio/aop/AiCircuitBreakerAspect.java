@@ -66,13 +66,26 @@ public class AiCircuitBreakerAspect {
         }
         
         // 获取当前剩余次数
-        String count = stringRedisTemplate.opsForValue().get(callCountKey);
-        // 使用 <= 0 判断，防止特殊情况下出现负数导致限制失效
-        if (count == null || Integer.parseInt(count) <= 0) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "您当日的AI调用次数已经达到上限，请明日再来");
+        String countStr = stringRedisTemplate.opsForValue().get(callCountKey);
+        int dailyCount = (countStr != null) ? Integer.parseInt(countStr) : 0;
+        
+        if (dailyCount > 0) {
+            // 还有每日次数，优先扣除每日次数
+            stringRedisTemplate.opsForValue().decrement(callCountKey);
+        } else {
+            // 每日次数已耗尽，检查永久奖励次数
+            String bonusCountKey = USER_AI_BONUS_COUNT + loginUser.getId().toString();
+            String bonusCountStr = stringRedisTemplate.opsForValue().get(bonusCountKey);
+            int bonusCount = (bonusCountStr != null) ? Integer.parseInt(bonusCountStr) : 0;
+            
+            if (bonusCount > 0) {
+                // 扣除奖励次数
+                stringRedisTemplate.opsForValue().decrement(bonusCountKey);
+            } else {
+                // 均已耗尽
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "您当日的AI调用次数已经达到上限，且无可用邀请奖励次数，请明日再来");
+            }
         }
-        // 没有达到上限，就将该用户的调用次数减一
-        stringRedisTemplate.opsForValue().decrement(callCountKey);
         // 3. 在这里顺便做全局 Token 消耗监控(因为是流式响应的，所以统计本次ai回复的时长反应token消耗)
         StopWatch stopWatch = new StopWatch();
         // 开始计时
