@@ -78,6 +78,7 @@ public class SecurityConfig {
                         .requestMatchers("/material/list/page/vo","/material/get/vo", "/api/material/get/vo", "/announcement/list/page/vo", "/api/announcement/list/page/vo").permitAll()
                         .requestMatchers("/internal/save", "/internal/auth").permitAll()
                         .requestMatchers("/chat/free/**").permitAll()
+                        .requestMatchers("/wechat/login/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptions -> exceptions

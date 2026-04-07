@@ -20,4 +20,9 @@ public interface RedisPrefixConstant {
     String USER_AI_CALL_COUNT = "user:ai:call:count:";
 
     String USER_AI_BONUS_COUNT = "user:ai:bonus:count:";
+
+    /**
+     * 微信扫码登录状态
+     */
+    String WECHAT_SCAN_LOGIN_STATUS = "wechat:scan:login:status:";
 }

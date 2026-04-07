@@ -90,6 +90,9 @@ public class OAuth2UserSyncServiceImpl implements OAuth2UserSyncService {
         // 设置默认角色为普通用户
         newUser.setUserRole("user");
 
+        // 为新用户生成专属邀请码（6位随机字符串）
+        newUser.setInviteCode(RandomUtil.randomString(6));
+
         // 保存用户
         boolean saved = userService.save(newUser);
         if (!saved) {

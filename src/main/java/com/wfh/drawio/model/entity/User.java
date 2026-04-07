@@ -66,6 +66,12 @@ public class User implements Serializable, UserDetails {
     private String mpOpenId;
 
     /**
+     * 小程序openId
+     */
+    @Schema(description = "小程序OpenID", example = "MiniAppOpenId123456")
+    private String miniAppOpenId;
+
+    /**
      * 用户昵称
      */
     @Schema(description = "用户昵称", example = "张三")
