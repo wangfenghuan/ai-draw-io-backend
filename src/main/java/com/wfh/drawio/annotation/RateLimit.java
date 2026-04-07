@@ -43,4 +43,10 @@ public @interface RateLimit {
      * @return
      */
     String message() default "请求过于频繁请稍后再试";
+
+    /**
+     * 限流器过期时间（秒），默认 1 小时
+     * 过期后 Redis 会自动清理该 key
+     */
+    long expireSeconds() default 3600;
 }

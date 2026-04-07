@@ -47,8 +47,8 @@ public class RateLimitAspect {
         // 使用Redisson的分布式限流器
         RRateLimiter rateLimiter = redissonClient.getRateLimiter(key);
 
-        // 1 小时后过期
-        rateLimiter.expire(Duration.ofHours(1));
+        // 设置限流器过期时间
+        rateLimiter.expire(Duration.ofSeconds(rateLimit.expireSeconds()));
         // 设置限流器参数：每个时间窗口允许的请求数和时间窗口
         rateLimiter.trySetRate(RateType.OVERALL, rateLimit.rate(), rateLimit.rateInterval(), RateIntervalUnit.SECONDS);
         // 记录限流器状态
