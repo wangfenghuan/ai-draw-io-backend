@@ -37,6 +37,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 @Slf4j
 @Component
+@Deprecated
 public class YjsHandler extends BinaryWebSocketHandler {
 
     /**

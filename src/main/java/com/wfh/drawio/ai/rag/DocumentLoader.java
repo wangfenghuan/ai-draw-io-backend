@@ -48,6 +48,14 @@ public class DocumentLoader {
             .withKeepSeparator(true)
             .build();
 
+    /**
+     * 不需要嵌入到向量数据库的文件（系统提示词相关）
+     */
+    private static final List<String> EXCLUDED_FILES = List.of(
+            "system_prompt.md",
+            "xml_guide.md"
+    );
+
     public List<Document> loadDoc() {
         List<Document> allDoc = new ArrayList<>();
 
@@ -55,6 +63,13 @@ public class DocumentLoader {
             org.springframework.core.io.Resource[] resources = resourcePatternResolver.getResources("classpath:doc/*.md");
             for (org.springframework.core.io.Resource resource : resources) {
                 String filename = resource.getFilename();
+
+                // 跳过系统提示词相关文件，不做向量嵌入
+                if (EXCLUDED_FILES.contains(filename)) {
+                    log.debug("跳过系统提示词文件: {}", filename);
+                    continue;
+                }
+
                 // 提取文档倒数第 3 和第 2 个字作为标签
                 String status = filename.substring(filename.length() - 6, filename.length() - 4);
 
